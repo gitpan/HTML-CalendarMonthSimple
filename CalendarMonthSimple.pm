@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.16";
+$HTML::CalendarMonthSimple::VERSION = "1.17";
 use strict;
 use Date::Calc;
 
@@ -68,6 +68,10 @@ sub as_HTML {
       unshift(@days,0);
    }
    $weeks = int((scalar(@days)+6)/7);
+   # And pad the end as well, to avoid "uninitialized value" warnings
+   foreach (scalar(@days)+1 .. $weeks*7) {
+      push(@days,0);
+   }
 
    # Define some scalars for generating the table
    my $border = $self->border();
@@ -946,7 +950,7 @@ Changes in 1.10: Added the headercontentcolor(), weekendheadercontentcolor(), an
 
 Changes in 1.11: The module's VERSION is now properly specified, so "use" statements won't barf if they specify a minimum version. Added the vcellalignment() method so vertical content alignment is independent of horizontal alignment.
 
-Changes in 1.12: Fixed lots of warnings that were generated if -w was used, due to many values defaulting to undef/blank. Added the sharpborders(), nowrap(), cellheight(), cellclass(), and weekdayheadersbig() methods. cellclass(), the beginning of CSS support. Thanks, Bray!
+Changes in 1.12: Fixed lots of warnings that were generated if B<-w> was used, due to many values defaulting to undef/blank. Added the sharpborders(), nowrap(), cellheight(), cellclass(), and weekdayheadersbig() methods. cellclass(), the beginning of CSS support. Thanks, Bray!
 
 Changes in 1.13: Added more CSS methods: headerclass(), weekdaycellclass(), weekndcellclass(), todaycellclass(). Added a test to the module distribution at the urging of CPAN testers.
 
@@ -955,6 +959,8 @@ Changes in 1.14: Added the contentfontsize() method.
 Changes in 1.15: Added the datecolor(), datecontentcolor(), datebordercolor(), and datecellclass() methods, allowind cosmetic attributes to be changed on a per-date basis.
 
 Changes in 1.16: Fixed a very stupid bug that made addcontent() and setcontent() not work. Sorry!
+
+Changes in 1.17: Corrected B<-w> warnings about uninitialized values in as_HTML().
 
 
 
