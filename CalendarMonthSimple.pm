@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-my $VERSION     = "1.09";
+$HTML::CalendarMonthSimple::VERSION = "1.11";
 use strict;
 use Date::Calc;
 
@@ -26,6 +26,7 @@ sub new {
    $self->{'showdatenumbers'}    = 1;
    $self->{'showweekdayheaders'} = 1;
    $self->{'cellalignment'}      = 'left';
+   $self->{'vcellalignment'}     = 'top';
 
    # Set the default calendar header
    $self->{'header'} = sprintf("<center><font size=+2>%s %d</font></center>",
@@ -66,6 +67,7 @@ sub as_HTML {
    $tablewidth =~ m/^(\d+)(\%?)$/; my $cellwidth = (int($1/7))||'14'; if ($2) { $cellwidth .= '%'; }
    my $header = $self->header();
    my $cellalignment = $self->cellalignment();
+   my $vcellalignment = $self->vcellalignment();
    my $bgcolor = $self->bgcolor() || '';
    my $weekdaycolor = $self->weekdaycolor() || $self->bgcolor();
    my $weekendcolor = $self->weekendcolor() || $self->bgcolor();
@@ -80,16 +82,21 @@ sub as_HTML {
    my $todaybordercolor = $self->todaybordercolor() || $self->bordercolor();
    my $weekdayheadercolor = $self->weekdayheadercolor() || $self->bgcolor();
    my $weekendheadercolor = $self->weekendheadercolor() || $self->bgcolor();
+   my $headercontentcolor = $self->headercontentcolor() || $self->contentcolor();
+   my $weekdayheadercontentcolor = $self->weekdayheadercontentcolor() || $self->contentcolor();
+   my $weekendheadercontentcolor = $self->weekendheadercontentcolor() || $self->contentcolor();
    my $headercolor = $self->headercolor() || $self->bgcolor();
+   my $cellpadding = $self->cellpadding() || 0;
+   my $cellspacing = $self->cellspacing() || 0;
    # Get today's date, in case there's a todaycolor()
    my($todayyear,$todaymonth,$todaydate) = Date::Calc::Today();
 
-   $html .= "<TABLE BORDER=\"$border\" WIDTH=\"$tablewidth\" BGCOLOR=\"$bgcolor\" BORDERCOLOR=\"$bordercolor\">\n";
-   $html .= "<tr><td colspan=7 bgcolor=\"$headercolor\">$header</td></tr>\n" if $header;
+   $html .= "<TABLE BORDER=\"$border\" WIDTH=\"$tablewidth\" BGCOLOR=\"$bgcolor\" BORDERCOLOR=\"$bordercolor\" CELLPADDING=\"$cellpadding\" CELLSPACING=\"$cellspacing\">\n";
+   $html .= "<tr><td colspan=7 bgcolor=\"$headercolor\"><font color=\"$headercontentcolor\">$header</font></td></tr>\n" if $header;
    if ($self->showweekdayheaders) {
       # Ultimately, this will display a hashref contents instead of a static week...
       #$html .= "<tr>\n<th>Sunday</th>\n<th>Monday</th>\n<th>Tuesday</th>\n<th>Wednesday</th>\n<th>Thursday</th>\n<th>Friday</th>\n<th>Saturday</th>\n</tr>\n";
-      $html .= "<tr>\n<th bgcolor=\"$weekendheadercolor\">Sunday</th>\n<th bgcolor=\"$weekdayheadercolor\">Monday</th>\n<th bgcolor=\"$weekdayheadercolor\">Tuesday</th>\n<th bgcolor=\"$weekdayheadercolor\">Wednesday</th>\n<th bgcolor=\"$weekdayheadercolor\">Thursday</th>\n<th bgcolor=\"$weekdayheadercolor\">Friday</th>\n<th bgcolor=\"$weekendheadercolor\">Saturday</th>\n</tr>\n";
+      $html .= "<tr>\n<th bgcolor=\"$weekendheadercolor\"><font color=\"$weekendheadercontentcolor\">Sunday</th>\n<th bgcolor=\"$weekdayheadercolor\"><font color=\"$weekdayheadercontentcolor\">Monday</font></th>\n<th bgcolor=\"$weekdayheadercolor\"><font color=\"$weekdayheadercontentcolor\">Tuesday</font></th>\n<th bgcolor=\"$weekdayheadercolor\"><font color=\"$weekdayheadercontentcolor\">Wednesday</font></th>\n<th bgcolor=\"$weekdayheadercolor\"><font color=\"$weekdayheadercontentcolor\">Thursday</font></th>\n<th bgcolor=\"$weekdayheadercolor\"><font color=\"$weekdayheadercontentcolor\">Friday</font></th>\n<th bgcolor=\"$weekendheadercolor\"><font color=\"$weekendheadercontentcolor\">Saturday</font></th>\n</tr>\n";
    }
    foreach $WEEK (0 .. ($weeks-1)) {
       $html .= "<TR>\n";
@@ -133,7 +140,7 @@ sub as_HTML {
                                                 $thiscontentcolor = $weekdaycontentcolor;
                                               }
          # Done with this cell - push it into the table
-         $html .= "<TD WIDTH=\"$cellwidth\" VALIGN=\"$cellalignment\" ALIGN=\"$cellalignment\" BGCOLOR=\"$thisbgcolor\" BORDERCOLOR=\"$thisbordercolor\"><FONT COLOR=\"$thiscontentcolor\">$thiscontent</FONT></TD>\n";
+         $html .= "<TD WIDTH=\"$cellwidth\" VALIGN=\"$vcellalignment\" ALIGN=\"$cellalignment\" BGCOLOR=\"$thisbgcolor\" BORDERCOLOR=\"$thisbordercolor\"><FONT COLOR=\"$thiscontentcolor\">$thiscontent</FONT></TD>\n";
       }
       $html .= "</TR>\n";
    }
@@ -243,6 +250,27 @@ sub contentcolor {
    return $self->{'contentcolor'};
 }
 
+sub headercontentcolor {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'headercontentcolor'} = $newvalue; }
+   return $self->{'headercontentcolor'};
+}
+
+sub weekdayheadercontentcolor {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'weekdayheadercontentcolor'} = $newvalue; }
+   return $self->{'weekdayheadercontentcolor'};
+}
+
+sub weekendheadercontentcolor {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'weekendheadercontentcolor'} = $newvalue; }
+   return $self->{'weekendheadercontentcolor'};
+}
+
 sub weekdaycontentcolor {
    my $self = shift;
    my $newvalue = shift;
@@ -296,6 +324,20 @@ sub border {
 }
 
 
+sub cellpadding {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'cellpadding'} = $newvalue; }
+   return $self->{'cellpadding'};
+}
+
+sub cellspacing {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'cellspacing'} = $newvalue; }
+   return $self->{'cellspacing'};
+}
+
 sub width {
    my $self = shift;
    my $newvalue = shift;
@@ -321,6 +363,13 @@ sub cellalignment {
    my $newvalue = shift;
    if (defined($newvalue)) { $self->{'cellalignment'} = $newvalue; }
    return $self->{'cellalignment'};
+}
+
+sub vcellalignment {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'vcellalignment'} = $newvalue; }
+   return $self->{'vcellalignment'};
 }
 
 
@@ -511,11 +560,11 @@ If no value is specified, the current value is returned.
 
 =head1 cellalignment([STRING])
 
-This sets the value of the align attribute to the <TD> tag for each day's cell. This controls how text will be centered/aligned within the cells.
+=head1 vcellalignment([STRING])
+
+cellalignment() sets the value of the align attribute to the <TD> tag for each day's cell. This controls how text will be horizontally centered/aligned within the cells. vcellalignment() does the same for vertical alignment. By default, content is aligned horizontally "left" and vertically "top"
 
 Any value can be used, if you think the web browser will find it interesting. Some useful alignments are: left, right, center, top, and bottom,
-
-By default, cells are aligned to the left.
 
 
 =head1 header([STRING])
@@ -558,31 +607,39 @@ If the header is set to an empty string, then no header will be printed at all. 
 
 =head1 headercolor([STRING])
 
+=head1 headercontentcolor([STRING])
+
 =head1 weekdayheadercolor([STRING])
+
+=head1 weekdayheadercontentcolor([STRING])
 
 =head1 weekendheadercolor([STRING])
 
+=head1 weekendheadercontentcolor([STRING])
 
 These define the colors of the cells. If a string (which should be either a HTML color-code like '#000000' or a color-word like 'yellow') is supplied as an argument, then the color is set to that specified. Otherwise, the current value is returned. To un-set a value, try assigning the null string as a value.
 
 The bgcolor defines the color of all cells. The weekdaycolor overrides the bgcolor for weekdays (Monday through Friday), the weekendcolor overrides the bgcolor for weekend days (Saturday and Sunday), and the todaycolor overrides the bgcolor for today's date. (Which may not mean a lot if you're looking at a calendar other than the current month.)
 
-The weekdayheadercolor overrides the bgcolor for the weekday headers that appear at the top of the calendar if showweekdayheaders() is true, and weekendheadercolor does the same thing for the weekend headers. The headercolor overrides the bgcolor for the month/year header at the top of the calendar.
+The weekdayheadercolor overrides the bgcolor for the weekday headers that appear at the top of the calendar if showweekdayheaders() is true, and weekendheadercolor does the same thing for the weekend headers. The headercolor overrides the bgcolor for the month/year header at the top of the calendar. The headercontentcolor(), weekdayheadercontentcolor(), and weekendheadercontentcolor() methods affect the color of the corresponding headers' contents and default to the contentcolor().
 
 The colors of the cell borders may be set: bordercolor determines the color of the calendar grid's outside border, and is the default color of the inner border for individual cells. The inner bordercolor may be overridden for the various types of cells via weekdaybordercolor, weekendbordercolor, and todaybordercolor.
 
 Finally, the color of the cells' contents may be set with contentcolor, weekdaycontentcolor, weekendcontentcolor, and todaycontentcolor. The contentcolor is the default color of cell content, and the other methods override this for the appropriate days' cells.
 
    # Example:
-   $cal->bgcolor('white');                 # Set the default cell color
+   $cal->bgcolor('white');                 # Set the default cell bgcolor
    $cal->bordercolor('green');             # Set the default border color
    $cal->contentcolor('black');            # Set the default content color
-   $cal->headercolor('yellow');            # Set the color of the Month+Year header
-   $cal->weekdayheadercolor('orange');     # Set the color of weekdays' headers
-   $cal->weekendheadercolor('pink');       # Set the color of weekends' headers
-   $cal->weekendcolor('palegreen');        # Override weekends' cell color
+   $cal->headercolor('yellow');            # Set the bgcolor of the Month+Year header
+   $cal->headercontentcolor('yellow')      # Set the content color of the Month+Year header
+   $cal->weekdayheadercolor('orange');     # Set the bgcolor of weekdays' headers
+   $cal->weekendheadercontentcolor('blue') # Set the color of weekday headers' contents
+   $cal->weekendheadercolor('pink');       # Set the bgcolor of weekends' headers
+   $cal->weekdayheadercontentcolor('blue') # Set the color of weekend headers' contents
+   $cal->weekendcolor('palegreen');        # Override weekends' cell bgcolor
    $cal->weekendcontentcolor('blue');      # Override weekends' content color
-   $cal->todaycolor('red');                # Override today's cell color
+   $cal->todaycolor('red');                # Override today's cell bgcolor
    $cal->todaycontentcolor('yellow');      # Override today's content color
    print $cal->as_HTML;                    # Print a really ugly calendar!
 
@@ -607,6 +664,10 @@ Changes in 1.08: Re-did the bugfixes described in 1.05, handling padded and non-
 
 Changes in 1.09: Fixed the "2Monday", et al support; a bug was found by Dale Wellman <dwellman@bpnetworks.com> where the 7th, 14th, 21st, and 28th days weren't properly computing which Nth weekday they were so "1Monday" wouldn't work if the first Monday was the 7th of the month.
 
+Changes in 1.10: Added the headercontentcolor(), weekendheadercontentcolor(), and weekdayheadercontentcolor() methods, and made content headers use bgcolors, etc properly.
+
+Changes in 1.11: The module's VERSION is now properly specified, so "use" statements won't barf if they specify a minimum version. Added the vcellalignment() method so vertical content alignment is independent of horizontal alignment.
+
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
 
@@ -623,5 +684,7 @@ Dave Fuller <dffuller@yahoo.com> added the getdatehref() and setdatehref() metho
 Danny J. Sohier <danny@gel.ulaval.ca> provided many of the color functions.
 
 Bernie Ledwick <bl@man.fwltech.com> provided base code for the today*() functions, and for the handling of cell borders.
+
+Justin Ainsworth <jrainswo@olemiss.edu> provided the vcellalignment() concept and code.
 
 
