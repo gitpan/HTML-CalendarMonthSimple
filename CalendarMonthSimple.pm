@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.23";
+$HTML::CalendarMonthSimple::VERSION = "1.24";
 use strict;
 use Date::Calc;
 
@@ -43,7 +43,7 @@ sub new {
    $self->{'saturday'} = "Saturday";
 
    # Set the default calendar header
-   $self->{'header'} = sprintf("<center><font size=+2>%s %d</font></center>",
+   $self->{'header'} = sprintf("<center><font size=\"+2\">%s %d</font></center>",
                                Date::Calc::Month_to_Text($self->{'month'}),$self->{'year'});
 
    # Initialize the (empty) cell content so the keys are representative of the month
@@ -153,7 +153,7 @@ sub as_HTML {
    }
    # the header
    if ($header) {
-      $html .= "<tr><td colspan=7";
+      $html .= "<tr><td colspan=\"7\"";
       $html .= " bgcolor=\"$headercolor\"" if defined $headercolor;
       $html .= " class=\"$headerclass\"" if defined $headerclass;
       $html .= ">";
@@ -244,7 +244,7 @@ sub as_HTML {
    }
    # now do each day, the actual date-content-containing cells
    foreach $WEEK (0 .. ($weeks-1)) {
-      $html .= "<TR>\n";
+      $html .= "<tr>\n";
 
       
       foreach $DAY ( 0 .. 6 ) {
@@ -258,8 +258,8 @@ sub as_HTML {
             # Get the content
             if ($self->showdatenumbers()) { 
               if ( $self->getdatehref( $thisday )) {
-                $thiscontent = "<p><b><a href=".$self->getdatehref($thisday);
-                $thiscontent .= ">$thisday</a></b></p>\n";
+                $thiscontent = "<p><b><a href=\"".$self->getdatehref($thisday);
+                $thiscontent .= "\">$thisday</a></b></p>\n";
               } else {
                 $thiscontent = "<p><b>$thisday</b></p>\n";
               }
@@ -1229,6 +1229,8 @@ Changes in 1.22: Added the much-desired weekstartsonmonday() method. Now weeks c
 
 Changes in 1.23: Added today_year() et al. "Today" can now be overridden in the constructor.
 
+Changes in 1.24: Minor corrections to the HTML so it passes XML validation. Thanks a bundle, Peter!
+
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
@@ -1266,4 +1268,6 @@ Thanks to Kurt <kurt@otown.com> for the bug report that made all the new stuff i
 Many thanks to Stefano Rodighiero <larsen@libero.it> for the code that made weekstartsonmonday() possible. This was a much-requested feature that will make many people happy!
 
 Dan Boitnott <dboitnot@yahoo.com> provided today_year() et al in 1.23
+
+Peter Venables <pvenables@rogers.com> provided the XML validation fixes for 1.24
 
