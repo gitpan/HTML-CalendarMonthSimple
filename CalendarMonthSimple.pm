@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.14";
+$HTML::CalendarMonthSimple::VERSION = "1.15";
 use strict;
 use Date::Calc;
 
@@ -38,11 +38,17 @@ sub new {
    $self->{'monthname'} = Date::Calc::Month_to_Text($self->{'month'});
 
    # Initialize the (empty) cell content so the keys are representative of the month
-   map { $self->{'content'}->{$_} = ''; } (1 .. Date::Calc::Days_in_Month($self->{'year'},$self->{'month'}));
+   foreach my $datenumber ( 1 .. Date::Calc::Days_in_Month($self->{'year'},$self->{'month'}) ) {
+      $self->{'content'}->{$_}          = '';
+      $self->{'datecellclass'}->{$_}    = '';
+      $self->{'datecolor'}->{$_}        = '';
+      $self->{'datebordercolor'}->{$_}  = '';
+      $self->{'datecontentcolor'}->{$_} = '';
+   }
    # Initialize the non-standard date buckets: weekdays, etc.
    foreach my $day ('sunday','monday','tuesday','wednesday','thursday','friday','saturday') {
       $self->{'content'}->{$day."s"} = ''; # "Mondays", "Tuesdays", etc.
-      foreach my $which (1 .. 5) { $self->{'content'}->{$which.$day} = ''; } # "2Sunday", "3Wednesday", etc.
+      foreach my $which (1 .. 5) { $self->{'content'}->{$which.$day}       = ''; } # "2Sunday", "3Wednesday", etc.
    }
 
    # All done!
@@ -166,12 +172,13 @@ sub as_HTML {
       $html .= "</$celltype>\n";
       $html .= "</tr>\n";
    }
-   # now do each day
+   # now do each day, the actual date-content-containing cells
    foreach $WEEK (0 .. ($weeks-1)) {
       $html .= "<TR>\n";
       foreach $DAY (0 .. 6) {
          my($thiscontent,$thisday,$thisbgcolor,$thisbordercolor,$thiscontentcolor,$thiscellclass);
          $thisday = $days[((7*$WEEK)+$DAY)];
+
          # Get the cell content
          if (! $thisday) { # If it's a dummy cell, no content
             $thiscontent = '&nbsp;'; }
@@ -194,23 +201,25 @@ sub as_HTML {
             # Normalize if there's no content
             $thiscontent .= '&nbsp;';
          }
+
          # Get the cell's coloration and CSS class
          if ($self->year == $todayyear && $self->month == $todaymonth && $thisday == $todaydate)
-                                              { $thisbgcolor = $todaycolor;
-                                                $thisbordercolor = $todaybordercolor;
-                                                $thiscontentcolor = $todaycontentcolor;
-                                                $thiscellclass = $todaycellclass;
+                                              { $thisbgcolor = $self->datecolor($thisday) || $todaycolor;
+                                                $thisbordercolor = $self->datebordercolor($thisday) || $todaybordercolor;
+                                                $thiscontentcolor = $self->datecontentcolor($thisday) || $todaycontentcolor;
+                                                $thiscellclass = $self->datecellclass($thisday) || $todaycellclass;
                                               }
-         elsif (($DAY == 0) || ($DAY == 6))   { $thisbgcolor = $weekendcolor;
-                                                $thisbordercolor = $weekendbordercolor;
-                                                $thiscontentcolor = $weekendcontentcolor;
-                                                $thiscellclass = $weekendcellclass;
+         elsif (($DAY == 0) || ($DAY == 6))   { $thisbgcolor = $self->datecolor($thisday) || $weekendcolor;
+                                                $thisbordercolor = $self->datebordercolor($thisday) || $weekendbordercolor;
+                                                $thiscontentcolor = $self->datecontentcolor($thisday) || $weekendcontentcolor;
+                                                $thiscellclass = $self->datecellclass($thisday) || $weekendcellclass;
                                               }
-         else                                 { $thisbgcolor = $weekdaycolor;
-                                                $thisbordercolor = $weekdaybordercolor;
-                                                $thiscontentcolor = $weekdaycontentcolor;
-                                                $thiscellclass = $weekdaycellclass;
+         else                                 { $thisbgcolor = $self->datecolor($thisday) || $weekdaycolor;
+                                                $thisbordercolor = $self->datebordercolor($thisday) || $weekdaybordercolor;
+                                                $thiscontentcolor = $self->datecontentcolor($thisday) || $weekdaycontentcolor;
+                                                $thiscellclass = $self->datecellclass($thisday) || $weekdaycellclass;
                                               }
+
          # Done with this cell - push it into the table
          $html .= "<td";
          $html .= " nowrap" if $nowrap;
@@ -385,6 +394,30 @@ sub todaycontentcolor {
    return $self->{'todaycontentcolor'};
 }
 
+sub datecolor {
+    my $self = shift;
+    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'datecolor'}->{$date} = $newvalue; }
+    return $self->{'datecolor'}->{$date};
+}
+
+sub datebordercolor {
+    my $self = shift;
+    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'datebordercolor'}->{$date} = $newvalue; }
+    return $self->{'datebordercolor'}->{$date};
+}
+
+sub datecontentcolor {
+    my $self = shift;
+    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'datecontentcolor'}->{$date} = $newvalue; }
+    return $self->{'datecontentcolor'}->{$date};
+}
+
 sub getcontent {
    my $self = shift;
    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
@@ -551,6 +584,14 @@ sub todaycellclass {
     return $self->{'todaycellclass'};
 }
 
+sub datecellclass {
+    my $self = shift;
+    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'datecellclass'}->{$date} = $newvalue; }
+    return $self->{'datecellclass'}->{$date};
+}
+
 sub headerclass {
     my $self = shift;
     my $newvalue = shift;
@@ -577,7 +618,7 @@ HTML::CalendarMonthSimple - Perl Module for Generating HTML Calendars
    $cal->border(10);
    $cal->header('Text at the top of the Grid');
    $cal->setcontent(14,"Valentine's Day");
-   $cal->setdatehref(14, 'http://www.lovers.com/');
+   $cal->setdatehref(14, 'http://localhost/');
    $cal->addcontent(14,"<p>Don't forget to buy flowers.");
    $cal->addcontent(13,"Guess what's tomorrow?");
    $cal->bgcolor('pink');
@@ -605,6 +646,16 @@ Naturally, new() returns a newly constructed calendar object. Recognized argumen
    $cal = new HTML::CalendarMonthSimple('month'=>2,'year=>2000);
    # One for "the current month" in 1997
    $cal = new HTML::CalendarMonthSimple('year'=>1997);
+
+
+=head1 year()
+
+=head1 month()
+
+=head1 monthname()
+
+These methods simply return the year/month of the calendar. monthname() returns the text name of the month, e.g. "December".
+
 
 
 =head1 setcontent(DATE,STRING)
@@ -676,13 +727,9 @@ These methods are used to control the content of date cells within the calendar 
    $cal->setdatehref(15, $getdatehref(15)."projects/perl/");
 
 
-=head1 year()
+=head1 contentfontsize([STRING])
 
-=head1 month()
-
-=head1 monthname()
-
-These methods simply return the year/month of the calendar. monthname() returns the text name of the month, e.g. "December".
+contentfontsize() sets the font size for the contents of the cell, overriding the browser's default. Can be expressed as an absolute (1 .. 6) or relative (-3 .. +3) size.
 
 
 =head1 border([INTEGER])
@@ -732,11 +779,6 @@ For both functions, if no value is specified, the current value is returned.
 cellalignment() sets the value of the align attribute to the <TD> tag for each day's cell. This controls how text will be horizontally centered/aligned within the cells. vcellalignment() does the same for vertical alignment. By default, content is aligned horizontally "left" and vertically "top"
 
 Any value can be used, if you think the web browser will find it interesting. Some useful alignments are: left, right, center, top, and bottom.
-
-
-=head1 contentfontsize([STRING])
-
-contentfontsize() sets the font size for the contents of the cell, overriding the browser's default. Can be expressed as an absolute (1 .. 6) or relative (-3 .. +3) size.
 
 
 =head1 header([STRING])
@@ -816,6 +858,22 @@ Finally, the color of the cells' contents may be set with contentcolor, weekdayc
    print $cal->as_HTML;                     # Print a really ugly calendar!
 
 
+=head1 datecolor(DATE,[STRING])
+
+=head1 datecontentcolor(DATE,[STRING])
+
+=head1 datebordercolor(DATE,[STRING])
+
+These methods set the cell color and the content color for the specified date, and will return the current value if STRING is not specified. These color settings will override any of the settings mentioned above, even todaycolor() and todaycontentcolor().
+
+The date must be numeric; it cannot be a string such as "2wednesday"
+
+  # Example: a red-letter day!
+  $cal->datecolor(3,'pink');
+  $cal->datecontentcolor(3,'red');
+
+
+
 =head1 nowrap([1 or 0])
 
 If set to 1, then calendar cells will have the NOWRAP attribute set, preventing their content from wrapping. If set to 0 (the default) then NOWRAP is not used and very long content may cause cells to become stretched out.
@@ -837,6 +895,7 @@ If no value is given, the current value is returned.
 To un-specify a height, try specifying a height of 0 or undef.
 
 
+
 =head1 cellclass([STRING])
 
 =head1 weekdaycellclass([STRING])
@@ -845,12 +904,16 @@ To un-specify a height, try specifying a height of 0 or undef.
 
 =head1 todaycellclass([STRING])
 
+=head1 datecellclass(DATE,[STRING])
+
 =head1 headerclass([STRING])
 
 
 These specify which CSS class will be attributed to the calendar's cells. By default, no classes are specified or used.
 
 cellclass() is used for all calendar cells. weekdaycellclass(), weekendcellclass(), and todaycellclass() override the cellclass() for the corresponding types of cells. headerclass() is used for the calendar's header.
+
+datecellclass() sets the CSS class for the cell for the specified date. This setting will override any of the other cell class settings, even todaycellclass()  This date must be numeric; it cannot be a string such as "2wednesday"
 
 If no value is given, the current value is returned.
 
@@ -889,6 +952,8 @@ Changes in 1.13: Added more CSS methods: headerclass(), weekdaycellclass(), week
 
 Changes in 1.14: Added the contentfontsize() method.
 
+Changes in 1.15: Added the datecolor(), datecontentcolor(), datebordercolor(), and datecellclass() methods, allowind cosmetic attributes to be changed on a per-date basis.
+
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
 
@@ -909,8 +974,6 @@ Bernie Ledwick <bl@man.fwltech.com> provided base code for the today*() function
 Justin Ainsworth <jrainswo@olemiss.edu> provided the vcellalignment() concept and code.
 
 Jessee Porter <porterje@us.ibm.com> provided fixes for 1.12 to correct those warnings.
-
-Todd <todd@marigoldtech.com> requested the weekdayheadersbig() method.
 
 Bray Jones <bjones@vialogix.com> supplied the sharpborders(), nowrap(), cellheight(), cellclass() methods.
 
