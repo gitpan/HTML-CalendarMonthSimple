@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.15";
+$HTML::CalendarMonthSimple::VERSION = "1.16";
 use strict;
 use Date::Calc;
 
@@ -39,11 +39,11 @@ sub new {
 
    # Initialize the (empty) cell content so the keys are representative of the month
    foreach my $datenumber ( 1 .. Date::Calc::Days_in_Month($self->{'year'},$self->{'month'}) ) {
-      $self->{'content'}->{$_}          = '';
-      $self->{'datecellclass'}->{$_}    = '';
-      $self->{'datecolor'}->{$_}        = '';
-      $self->{'datebordercolor'}->{$_}  = '';
-      $self->{'datecontentcolor'}->{$_} = '';
+      $self->{'content'}->{$datenumber}          = '';
+      $self->{'datecellclass'}->{$datenumber}    = '';
+      $self->{'datecolor'}->{$datenumber}        = '';
+      $self->{'datebordercolor'}->{$datenumber}  = '';
+      $self->{'datecontentcolor'}->{$datenumber} = '';
    }
    # Initialize the non-standard date buckets: weekdays, etc.
    foreach my $day ('sunday','monday','tuesday','wednesday','thursday','friday','saturday') {
@@ -953,6 +953,9 @@ Changes in 1.13: Added more CSS methods: headerclass(), weekdaycellclass(), week
 Changes in 1.14: Added the contentfontsize() method.
 
 Changes in 1.15: Added the datecolor(), datecontentcolor(), datebordercolor(), and datecellclass() methods, allowind cosmetic attributes to be changed on a per-date basis.
+
+Changes in 1.16: Fixed a very stupid bug that made addcontent() and setcontent() not work. Sorry!
+
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
