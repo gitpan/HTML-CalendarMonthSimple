@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-my $VERSION     = "1.05";
+my $VERSION     = "1.06";
 use strict;
 use Date::Calc;
 
@@ -36,6 +36,11 @@ sub new {
 
    # Initialize the (empty) cell content so the keys are representative of the month
    map { $self->{'content'}->{$_} = ''; } (1 .. Date::Calc::Days_in_Month($self->{'year'},$self->{'month'}));
+   # Initialize the non-standard date buckets: weekdays, etc.
+   foreach my $day ('sunday','monday','tuesday','wednesday','thursday','friday','saturday') {
+      $self->{'content'}->{$day."s"} = ''; # "Mondays", "Tuesdays", etc.
+      foreach my $which (1 .. 5) { $self->{'content'}->{$which.$day} = ''; } # "2Sunday", "3Wednesday", etc.
+   }
 
    # All done!
    bless $self,$class; return $self;
@@ -104,7 +109,14 @@ sub as_HTML {
                 $thiscontent = "<p><b>$thisday</b></p>\n";
               }
             }
-            $thiscontent .= $self->getcontent($thisday) || '&nbsp;';
+            # Content for this specific date
+            $thiscontent .= $self->getcontent($thisday);
+            # Content for "2nd Wednesday", etc.
+            $thiscontent .= $self->getcontent(int(1+($thisday/7)).('sunday','monday','tuesday','wednesday','thursday','friday','saturday')[$DAY]);
+            # Content for "Wednesdays", etc.
+            $thiscontent .= $self->getcontent(('sundays','mondays','tuesdays','wednesdays','thursdays','fridays','saturdays')[$DAY]);
+            # Normalize if there's no content
+            $thiscontent = '&nbsp;' unless $thiscontent;
          }
          # Get the cell's coloration
          if ($self->year == $todayyear && $self->month == $todaymonth && $thisday == $todaydate)
@@ -121,7 +133,7 @@ sub as_HTML {
                                                 $thiscontentcolor = $weekdaycontentcolor;
                                               }
          # Done with this cell - push it into the table
-         $html .= "<TD WIDTH=\"$cellwidth\" VALIGN=\"$cellalignment\" ALIGN=\"$cellalignment\" BGCOLOR=\"$thisbgcolor\" BORDERCOLOR=\"$thisbordercolor\"><font color=\"$thiscontentcolor\">$thiscontent</font></TD>\n";
+         $html .= "<TD WIDTH=\"$cellwidth\" VALIGN=\"$cellalignment\" ALIGN=\"$cellalignment\" BGCOLOR=\"$thisbgcolor\" BORDERCOLOR=\"$thisbordercolor\"><FONT COLOR=\"$thiscontentcolor\">$thiscontent</FONT></TD>\n";
       }
       $html .= "</TR>\n";
    }
@@ -254,13 +266,13 @@ sub todaycontentcolor {
 
 sub getcontent {
    my $self = shift;
-   my $date = $self->_convertweekdaytodate(shift) || return();
+   my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
    return $self->{'content'}->{$date};
 }
 
 sub setcontent {
    my $self = shift;
-   my $date = $self->_convertweekdaytodate(shift) || return();
+   my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
    my $newcontent = shift || '';
    return() unless defined($self->{'content'}->{$date});
    $self->{'content'}->{$date} = $newcontent;
@@ -269,45 +281,12 @@ sub setcontent {
 
 sub addcontent {
    my $self = shift;
-   my $date = $self->_convertweekdaytodate(shift) || return();
+   my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d+\.]$/;
    my $newcontent = shift || return();
    return() unless defined($self->{'content'}->{$date});
    $self->{'content'}->{$date} .= $newcontent;
    return(1);
 }
-
-# _convertweekdaytodate() is an internal routine that converts a string
-# such as "2Wed" into the integer representing "the second wednesday of
-# the selected month/year". If an integer is passed, it is simply returned, so
-# this routine is safe to use to clean up dates even if they're already correct.
-sub _convertweekdaytodate {
-   my $self = shift;
-   my $day = shift || return();
-   return(int($day)) if $day =~ /^[\d\.]+$/;
-   # Figure out the numeric which+day, else bail if no match is found
-   my $weekdaynames = {
-                       'mon'=>1,'monday'=>1,
-                       'tue'=>2,'tuesday'=>2,
-                       'wed'=>3,'wednesday'=>3,
-                       'thu'=>4,'thursday'=>4,
-                       'fri'=>5,'friday'=>5,
-                       'sat'=>6,'saturday'=>6,
-                       'sun'=>7,'sunday'=>7
-                      };
-   my($which,$weekday) = ($day =~ m/(\d+)(\D+)/); return() unless ($which && $weekday);
-   $weekday = $weekdaynames->{lc($weekday)} || return();
-   my $thiswhich = 0; # The first matching weekday will be the "1st" such weekday
-   # Go through each day in the month and see if it's what matches
-   # When a match is found, we simply return out of the loop
-   foreach (1 .. Date::Calc::Days_in_Month($self->year(),$self->month()) ) {
-      next unless Date::Calc::Day_of_Week($self->year(),$self->month(),$_) == $weekday;
-      $thiswhich++;
-      next unless ($thiswhich == $which);
-      return($_);
-   }
-}
-
-
 
 sub border {
    my $self = shift;
@@ -424,7 +403,7 @@ Naturally, new() returns a newly constructed calendar object. Recognized argumen
 
 =head1 getcontent(DATE)
 
-These methods are used to control the content of date cells within the calendar grid. The DATE argument may be a numeric date or it may be a string describing a certain occurrence of a weekday, e.g. "2wed" or "3MONDAY" to represent "the second wednesday of this month" and "the third Monday of this month". The weekdays may be their 3-letter truncation or the full name of the day, and are case-insensitive.
+These methods are used to control the content of date cells within the calendar grid. The DATE argument may be a numeric date or it may be a string describing a certain occurrence of a weekday, e.g. "3MONDAY" to represent "the third Monday of the month being worked with", or it may be the plural of a weekday name, e.g. "wednesdays" to represent all occurrences of the given weekday. The weekdays are case-insensitive.
 
    # Examples:
    # The cell for the 15th of the month will now say something.
@@ -446,9 +425,13 @@ These methods are used to control the content of date cells within the calendar 
    # The second Sunday of May is some holiday or another...
    $cal->addcontent('2sunday','Some Special Day') if ($cal->month() == 5);
    # So is the third wednesday of this month
-   $cal->setcontent('3Wed','Third Wednesday!');
+   $cal->setcontent('3WedNEsDaY','Third Wednesday!');
    # What's scheduled for the second Friday?
    $cal->getcontent('2FRIDAY');
+
+   # Every Wednesday and Friday of this month...
+   $cal->addcontent('wednesdays','Every Wednesday!');
+   $cal->getcontent('Fridays');
 
 
 =head1 setdatehref(DATE,URL_STRING)
@@ -602,8 +585,6 @@ Finally, the color of the cells' contents may be set with contentcolor, weekdayc
 
 =head1 BUGS, TODO, CHANGES
 
-It would be nice if the week didn't have to start on Sunday. It would also be cool if the weekday headers could be changed (Lunes, Martes, Miercoles,...). It'd be nice if the month could be translated, as well. If anyone wants to take on any of this work, please feel invited.
-
 Changes in 1.01: Added VALIGN to cells, to make alignment work with browsers better. Added showweekdayheaders(). Corrected a bug that results in the month not fitting on the grid (e.g. March 2003).  Added getdatehref() and setdatehref(). Corrected a bug that causes a blank week to be printed at the beginning of some months.
 
 Changes in 1.02: Added the color methods.
@@ -612,7 +593,9 @@ Changes in 1.03: More color methods!
 
 Changes in 1.04: Added the "which weekday" capability to addcontent(), setcontent(), and getcontent()
 
-Changes in 1.05: addcontent(), et al can now take strings such as '06' or decimals such as '3.14' and will handle them intuitively
+Changes in 1.05: addcontent(), et al can now take strings such as '06' or decimals such as '3.14' and will handle them correctly.
+
+Changes in 1.06: Changed the "which weekday" interface a bit; truncations such as "2Tue" no longer work, and must be spelled out entirely ("2Tuesday"). Added "plural weekdays" support (e.g. "wednesdays" for "every wednesday").
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
