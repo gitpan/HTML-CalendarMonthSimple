@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-my $VERSION     = "1.03";
+my $VERSION     = "1.04";
 use strict;
 use Date::Calc;
 
@@ -254,14 +254,13 @@ sub todaycontentcolor {
 
 sub getcontent {
    my $self = shift;
-   my $date = shift || return();
-
+   my $date = $self->_convertweekdaytodate(shift) || return();
    return $self->{'content'}->{$date};
 }
 
 sub setcontent {
    my $self = shift;
-   my $date = shift || return();
+   my $date = $self->_convertweekdaytodate(shift) || return();
    my $newcontent = shift || '';
    return() unless defined($self->{'content'}->{$date});
    $self->{'content'}->{$date} = $newcontent;
@@ -270,11 +269,42 @@ sub setcontent {
 
 sub addcontent {
    my $self = shift;
-   my $date = shift || return();
+   my $date = $self->_convertweekdaytodate(shift) || return();
    my $newcontent = shift || return();
    return() unless defined($self->{'content'}->{$date});
    $self->{'content'}->{$date} .= $newcontent;
    return(1);
+}
+
+# _convertweekdaytodate() is an internal routine that converts a string
+# such as "2Wed" into the integer representing "the second wednesday of
+# the selected month/year". If an integer is passed, it is simply returned, so
+# this routine is safe to use to clean up dates even if they're already correct.
+sub _convertweekdaytodate {
+   my $self = shift;
+   my $day = shift || return();
+   return($day) if ($day eq int($day));
+   # Figure out the numeric which+day, else bail if no match is found
+   my $weekdaynames = {
+                       'mon'=>1,'monday'=>1,
+                       'tue'=>2,'tuesday'=>2,
+                       'wed'=>3,'wednesday'=>3,
+                       'thu'=>4,'thursday'=>4,
+                       'fri'=>5,'friday'=>5,
+                       'sat'=>6,'saturday'=>6,
+                       'sun'=>7,'sunday'=>7
+                      };
+   my($which,$weekday) = ($day =~ m/(\d+)(\D+)/); return() unless ($which && $weekday);
+   $weekday = $weekdaynames->{lc($weekday)} || return();
+   my $thiswhich = 0; # The first matching weekday will be the "1st" such weekday
+   # Go through each day in the month and see if it's what matches
+   # When a match is found, we simply return out of the loop
+   foreach (1 .. Date::Calc::Days_in_Month($self->year(),$self->month()) ) {
+      next unless Date::Calc::Day_of_Week($self->year(),$self->month(),$_) == $weekday;
+      $thiswhich++;
+      next unless ($thiswhich == $which);
+      return($_);
+   }
 }
 
 
@@ -394,7 +424,7 @@ Naturally, new() returns a newly constructed calendar object. Recognized argumen
 
 =head1 getcontent(DATE)
 
-These methods are used to control the content of date cells within the calendar grid.
+These methods are used to control the content of date cells within the calendar grid. The DATE argument may be a numeric date or it may be a string describing a certain occurrence of a weekday, e.g. "2wed" or "3MONDAY" to represent "the second wednesday of this month" and "the third Monday of this month". The weekdays may be their 3-letter truncation or the full name of the day, and are case-insensitive.
 
    # Examples:
    # The cell for the 15th of the month will now say something.
@@ -412,6 +442,13 @@ These methods are used to control the content of date cells within the calendar 
    $cal->addcontent(16,"<p>Hello World</p>");
    $cal->addcontent(16,"<p>Hello Again</p>");
    print $cal->getcontent(16); # Prints 2 sentences
+
+   # The second Sunday of May is some holiday or another...
+   $cal->addcontent('2sunday','Some Special Day') if ($cal->month() == 5);
+   # So is the third wednesday of this month
+   $cal->setcontent('3Wed','Third Wednesday!');
+   # What's scheduled for the second Friday?
+   $cal->getcontent('2FRIDAY');
 
 
 =head1 setdatehref(DATE,URL_STRING)
@@ -572,6 +609,8 @@ Changes in 1.01: Added VALIGN to cells, to make alignment work with browsers bet
 Changes in 1.02: Added the color methods.
 
 Changes in 1.03: More color methods!
+
+Changes in 1.04: Added the "which weekday" capability to addcontent(), setcontent(), and getcontent()
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
