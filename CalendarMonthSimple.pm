@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-my $VERSION     = "1.01";
+my $VERSION     = "1.02";
 use strict;
 use Date::Calc;
 
@@ -61,22 +61,30 @@ sub as_HTML {
    $tablewidth =~ m/^(\d+)(\%?)$/; my $cellwidth = (int($1/7))||'14'; if ($2) { $cellwidth .= '%'; }
    my $header = $self->header();
    my $cellalignment = $self->cellalignment();
+   my $bgcolor = $self->bgcolor() || '';
+   my $weekdaycolor = $self->weekdaycolor() || $self->bgcolor();
+   my $weekendcolor = $self->weekendcolor() || $self->bgcolor();
+   my $weekdayheadercolor = $self->weekdayheadercolor() || $self->bgcolor();
+   my $headercolor = $self->headercolor() || $self->bgcolor();
 
    # Now draw the grid
-   $html .= "<TABLE BORDER=\"$border\" WIDTH=\"$tablewidth\">\n";
-   $html .= "<tr><td colspan=7>$header</td></tr>\n" if $header;
+   $html .= "<TABLE BORDER=\"$border\" WIDTH=\"$tablewidth\" BGCOLOR=\"$bgcolor\">\n";
+   $html .= "<tr><td colspan=7 bgcolor=\"$headercolor\">$header</td></tr>\n" if $header;
    if ($self->showweekdayheaders) {
       # Ultimately, this will display a hashref contents instead of a static week...
-      $html .= "<tr>\n<th>Sunday</th>\n<th>Monday</th>\n<th>Tuesday</th>\n<th>Wednesday</th>\n<th>Thursday</th>\n<th>Friday</th>\n<th>Saturday</th>\n</tr>\n";
+      #$html .= "<tr>\n<th>Sunday</th>\n<th>Monday</th>\n<th>Tuesday</th>\n<th>Wednesday</th>\n<th>Thursday</th>\n<th>Friday</th>\n<th>Saturday</th>\n</tr>\n";
+      $html .= "<tr>\n<th bgcolor=\"$weekdayheadercolor\">Sunday</th>\n<th bgcolor=\"$weekdayheadercolor\">Monday</th>\n<th bgcolor=\"$weekdayheadercolor\">Tuesday</th>\n<th bgcolor=\"$weekdayheadercolor\">Wednesday</th>\n<th bgcolor=\"$weekdayheadercolor\">Thursday</th>\n<th bgcolor=\"$weekdayheadercolor\">Friday</th>\n<th bgcolor=\"$weekdayheadercolor\">Saturday</th>\n</tr>\n";
    }
    foreach $WEEK (0 .. ($weeks-1)) {
       $html .= "<TR>\n";
       foreach $DAY (0 .. 6) {
-         my($thiscontent,$thisday);
+         my($thiscontent,$thisday,$thiscolor);
          $thisday = $days[((7*$WEEK)+$DAY)];
+         # Get the cell content
          if (! $thisday) { # If it's a dummy cell, no content
             $thiscontent = '&nbsp;'; }
          else { # A real date cell with potential content
+            # Get the content
             if ($self->showdatenumbers()) { 
               if ( $self->getdatehref( $thisday )) {
                 $thiscontent = "<p><b><a href=".$self->getdatehref($thisday);
@@ -85,8 +93,13 @@ sub as_HTML {
                 $thiscontent = "<p><b>$thisday</b></p>\n";
               }
             }
-            $thiscontent .= $self->getcontent($thisday) || '&nbsp;'; }
-         $html .= "<TD WIDTH=\"$cellwidth\" VALIGN=\"$cellalignment\" ALIGN=\"$cellalignment\">$thiscontent</TD>\n";
+            $thiscontent .= $self->getcontent($thisday) || '&nbsp;';
+         }
+         # Get the cell color
+         if (($DAY == 0) || ($DAY == 6)) { $thiscolor = $weekendcolor; }
+         else                            { $thiscolor = $weekdaycolor; }
+         # Done with this cell - push it into the table
+         $html .= "<TD WIDTH=\"$cellwidth\" VALIGN=\"$cellalignment\" ALIGN=\"$cellalignment\" BGCOLOR=\"$thiscolor\">$thiscontent</TD>\n";
       }
       $html .= "</TR>\n";
    }
@@ -108,6 +121,42 @@ sub setdatehref {
    $self->{'href'}->{$date} = $datehref;
    return(1);
 }
+
+sub weekendcolor {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'weekendcolor'} = $newvalue; }
+   return $self->{'weekendcolor'};
+}
+
+sub weekdayheadercolor {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'weekdayheadercolor'} = $newvalue; }
+   return $self->{'weekdayheadercolor'};
+}
+
+sub weekdaycolor {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'weekdaycolor'} = $newvalue; }
+   return $self->{'weekdaycolor'};
+}
+
+sub headercolor {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'headercolor'} = $newvalue; }
+   return $self->{'headercolor'};
+}
+
+sub bgcolor {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'bgcolor'} = $newvalue; }
+   return $self->{'bgcolor'};
+}
+
 
 sub getcontent {
    my $self = shift;
@@ -216,10 +265,10 @@ HTML::CalendarMonthSimple - Perl Module for Generating HTML Calendars
    $cal->header('Text at the top of the Grid');
    $cal->setcontent(14,"Valentine's Day");
    $cal->setdatehref(14, 'http://www.lovers.com/');
-   $cal->addcontent(20,"Twentieth day of the month");
    $cal->addcontent(14,"<p>Don't forget to buy flowers.");
+   $cal->addcontent(13,"Thirteenth day of the month");
+   $cal->bgcolor('pink');
    print $cal->as_HTML;
-
 
 
 =head1 DESCRIPTION
@@ -366,13 +415,39 @@ If the header is set to an empty string, then no header will be printed at all. 
    $cal->header("<center><font size=+2 color=red>$m $y</font></center>\n\n");
 
 
+=head1 bgcolor([STRING])
+
+=head1 weekdaycolor([STRING])
+
+=head1 weekendcolor([STRING])
+
+=head1 weekdayheadercolor([STRING])
+
+=head1 headercolor([STRING])
+
+These define the colors of the cells. If a string (which should be a HTML color-code like '#000000' or a color-word like 'yellow') is supplied as an argument, then the color is set to that specified. Otherwise, the current value is returned. To un-set a value, try assigning the null string as a value.
+
+The bgcolor defines the color of all cells. The weekdaycolor overrides the bgcolor for weekdays (Monday thru\ough Friday), and the weekendcolor overrides the bgcolor for weekend days (Saturday and Sunday). The weekdayheadercolor overrides the bgcolor for the weekday headers that appear at the top of the calendar if showweekdayheaders() is true. The headercolor overrides the bgcolor for the month/year header at the top of the calendar.
+
+   # Example:
+   # This sets a default cell color, and then overrides the cell colors.
+   # Only the weekday headers aren't overridden, so only they will show
+   # the default bgcolor of green.
+   # P.S. I don't recommend this color scheme for production use. ;)
+   $cal->bgcolor('green');
+   $cal->weekdaycolor('orange');
+   $cal->weekendcolor('blue');
+   #$cal->weekdayheadercolor('silver');
+   $cal->headercolor('yellow');
+
 
 =head1 BUGS, TODO, CHANGES
 
-It would be nice if the week didn't have to start on Sunday. It would also be cool if the weekday headers could be changed (Lunes, Martes, Miercoles,...)  or suppressed. It'd be nice if the month could be translated, as well. These features will probably make in into the next version some time in mid-February.
+It would be nice if the week didn't have to start on Sunday. It would also be cool if the weekday headers could be changed (Lunes, Martes, Miercoles,...)  or suppressed. It'd be nice if the month could be translated, as well. These features will probably make in into the next version some time in April 2001. If anyone wants to take on any of this work, please feel invited.
 
 Changes in 1.01: Added VALIGN to cells, to make alignment work with browsers better. Added showweekdayheaders(). Corrected a bug that results in the month not fitting on the grid (e.g. March 2003).  Added getdatehref() and setdatehref(). Corrected a bug that causes a blank week to be printed at the beginning of some months.
 
+Changes in 1.02: Added the color methods.
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
@@ -383,7 +458,9 @@ HTML::CalendarMonthSimple was written by Gregor Mosheh <stigmata@blackangel.net>
 
 This would have been extremely difficult if not for Date::Calc. Many thanks to Steffen Beyer <sb@engelschall.com> for a very fine set of date-related functions!
 
-Dave Fuller (dffuller@yahoo.com) added the getdatehref() and setdatehref() methods.
+Dave Fuller <dffuller@yahoo.com> added the getdatehref() and setdatehref() methods, and pointed out the bugs that were corrected in 1.01.
+
+Danny J. Sohier <danny@gel.ulaval.ca> provided the color functions.
 
 This Perl module is freeware. It may be copied, derived, used, and distributed without limitation.
 
