@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.19";
+$HTML::CalendarMonthSimple::VERSION = "1.20";
 use strict;
 use Date::Calc;
 
@@ -204,13 +204,7 @@ sub as_HTML {
                 $thiscontent = "<p><b>$thisday</b></p>\n";
               }
             }
-            # Content for this specific date
-            $thiscontent .= $self->getcontent($thisday);
-            # Content for "2nd Wednesday", etc.
-            $thiscontent .= $self->getcontent(int(1+($thisday/7.1)).('sunday','monday','tuesday','wednesday','thursday','friday','saturday')[$DAY]);
-            # Content for "Wednesdays", etc.
-            $thiscontent .= $self->getcontent(('sundays','mondays','tuesdays','wednesdays','thursdays','fridays','saturdays')[$DAY]);
-            # Normalize if there's no content
+            $thiscontent .= $self->getallcontent($thisday);
             $thiscontent ||= '&nbsp;';
          }
 
@@ -456,6 +450,40 @@ sub getcontent {
    my $self = shift;
    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
    return $self->{'content'}->{$date};
+}
+
+sub getallcontent {
+   my $self = shift;
+   my $date = shift;
+   my $content = '';
+
+   # the total content is the content of the date, the Xth-weekday, and the weekdays
+   # e.g. for 2003.04.09 the content is 9, 2wednesday, and wednesdays
+
+   # cache the year and month, rather than call $self->year() and $self->month() repeatedly
+   # particularly cuz getallcontent() will be used in as_HTML() in a loop some 30 times!
+   my $year = $self->year(); my $month = $self->month();
+
+   # first off, if the date is in Xweekday format, change it to the numeric date
+   # we figure out the Xweekday again later, but this standardizes the code and only wastes a little CPU time
+   if (my($which,$weekday) = ($date =~ m/^(\d)([a-zA-Z]+)/)) {
+      my($y,$m,$d) = Date::Calc::Nth_Weekday_of_Month_Year($year,$month,Date::Calc::Decode_Day_of_Week($weekday),$which);
+      $date = $d;
+   }
+
+   # cache the day of the week, cuz it's used repeatedly in fetching content
+   my $weekday = Date::Calc::Day_of_Week($year,$month,$date);
+   my $weekday_text = lc(Date::Calc::Day_of_Week_to_Text($weekday));
+
+   # the content for this numeric date
+   $content .= $self->getcontent($date);
+   # content for Xweekday
+   my $which = int(Date::Calc::Delta_Days(Date::Calc::Nth_Weekday_of_Month_Year($year,$month,$weekday,1),$year,$month,$date) / 7) + 1;
+   $content .= $self->getcontent($which.$weekday_text);
+   # content for weekdays
+   $content .= $self->getcontent($weekday_text.'s');
+
+   return $content;
 }
 
 sub setcontent {
@@ -738,6 +766,27 @@ These methods are used to control the content of date cells within the calendar 
    # Every Wednesday and Friday of this month...
    $cal->addcontent('wednesdays','Every Wednesday!');
    $cal->getcontent('Fridays');
+
+Note: The storage for the three date types is in three separate buckets, e.g. even if the 9th of a month is the second Wednesday of that month, if you setcontent() for the 9th of the month, then you addcontent() for the '2wednesday' of that month, then getcontent(9) and getcontent('2wednesday') will each return their own content, not the combined contents! If you want to use a date or a Nweekday to fetch all the content for that date, use getallcontent() instead of getcontent().
+
+
+
+=head1 getallcontent(DATE)
+
+This is similar to getcontent() except that it is smart enough to combine all the content for a given date with the content for that weekday. This addresses the shortcoming discussed in the getcontent()'s description. The DATE must be either a numeric date (e.g. 9) or a string describing a certain occurrence of a weekday (e.g. '2wednesday). It is not acceptable to use a plural weekday name (e.g. 'wednesdays').
+
+   # example:
+   # getcontent() fetches individual buckets of content
+   # assume that the 9th is the second wednesday of the month...
+   $cal->addcontent(9,"the ninth\n");
+   $cal->addcontent('2wednesday',"second wednesday\n");
+   $cal->addcontent('wednesdays',"every wednesday\n");
+   print $cal->getcontent(9); # only prints the '9' bucket, not the others!
+   #
+   # on the other hand, getallcontent() is smart enough to combine the three content buckets...
+   # both of these will print the same thing: "the ninth\nsecond wednesday\nevery wednesday\n"
+   print $cal->getallcontent(9);
+   print $cal->getcontent('2wednesday');
 
 
 
