@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-my $VERSION     = "1.08";
+my $VERSION     = "1.09";
 use strict;
 use Date::Calc;
 
@@ -112,7 +112,7 @@ sub as_HTML {
             # Content for this specific date
             $thiscontent .= $self->getcontent($thisday);
             # Content for "2nd Wednesday", etc.
-            $thiscontent .= $self->getcontent(int(1+($thisday/7)).('sunday','monday','tuesday','wednesday','thursday','friday','saturday')[$DAY]);
+            $thiscontent .= $self->getcontent(int(1+($thisday/7.1)).('sunday','monday','tuesday','wednesday','thursday','friday','saturday')[$DAY]);
             # Content for "Wednesdays", etc.
             $thiscontent .= $self->getcontent(('sundays','mondays','tuesdays','wednesdays','thursdays','fridays','saturdays')[$DAY]);
             # Normalize if there's no content
@@ -604,6 +604,8 @@ Changes in 1.06: Changed the "which weekday" interface a bit; truncations such a
 Changes in 1.07: Fixed a typo that caused an entirely empty calendar to be displayed very small.
 
 Changes in 1.08: Re-did the bugfixes described in 1.05, handling padded and non-integer dates.
+
+Changes in 1.09: Fixed the "2Monday", et al support; a bug was found by Dale Wellman <dwellman@bpnetworks.com> where the 7th, 14th, 21st, and 28th days weren't properly computing which Nth weekday they were so "1Monday" wouldn't work if the first Monday was the 7th of the month.
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
