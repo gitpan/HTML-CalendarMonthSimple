@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.12";
+$HTML::CalendarMonthSimple::VERSION = "1.13";
 use strict;
 use Date::Calc;
 
@@ -93,6 +93,10 @@ sub as_HTML {
    my $sharpborders = $self->sharpborders() || 0;
    my $cellheight = $self->cellheight();
    my $cellclass = $self->cellclass();
+   my $weekdaycellclass = $self->weekdaycellclass() || $self->cellclass();
+   my $weekendcellclass = $self->weekendcellclass() || $self->cellclass();
+   my $todaycellclass = $self->todaycellclass() || $self->cellclass();
+   my $headerclass = $self->headerclass() || $self->cellclass();
    my $nowrap = $self->nowrap() || 0;
    # Get today's date, in case there's a todaycolor()
    my($todayyear,$todaymonth,$todaydate) = Date::Calc::Today();
@@ -122,6 +126,7 @@ sub as_HTML {
    if ($header) {
       $html .= "<tr><td colspan=7";
       $html .= " bgcolor=\"$headercolor\"" if $headercolor;
+      $html .= " class=\"$headerclass\"" if $headerclass;
       $html .= ">";
       $html .= "<font color=\"$headercontentcolor\">" if $headercontentcolor;
       $html .= $header;
@@ -134,6 +139,7 @@ sub as_HTML {
       $html .= "<tr>\n";
       $html .= "<$celltype";
       $html .= " bgcolor=\"$weekendheadercolor\"" if $weekendheadercolor;
+      $html .= " class=\"$weekendcellclass\"" if $weekendcellclass;
       $html .= ">";
       $html .= "<font color=\"$weekendheadercontentcolor\">" if $weekendheadercontentcolor;
       $html .= "Sunday";
@@ -142,6 +148,7 @@ sub as_HTML {
       foreach ("Monday","Tuesday","Wednesday","Thursday","Friday"){
          $html .= "<$celltype";
          $html .= " bgcolor=\"$weekdayheadercolor\"" if $weekdayheadercolor;
+         $html .= " class=\"$weekdaycellclass\"" if $weekdaycellclass;
          $html .= ">";
          $html .= "<font color=\"$weekdayheadercontentcolor\">" if $weekdayheadercontentcolor;
          $html .= "$_";
@@ -150,6 +157,7 @@ sub as_HTML {
       }
       $html .= "<$celltype";
       $html .= " bgcolor=\"$weekendheadercolor\"" if $weekendheadercolor;
+      $html .= " class=\"$weekendcellclass\"" if $weekendcellclass;
       $html .= ">";
       $html .= "<font color=\"$weekendheadercontentcolor\">" if $weekendheadercontentcolor;
       $html .= "Saturday";
@@ -161,7 +169,7 @@ sub as_HTML {
    foreach $WEEK (0 .. ($weeks-1)) {
       $html .= "<TR>\n";
       foreach $DAY (0 .. 6) {
-         my($thiscontent,$thisday,$thisbgcolor,$thisbordercolor,$thiscontentcolor);
+         my($thiscontent,$thisday,$thisbgcolor,$thisbordercolor,$thiscontentcolor,$thiscellclass);
          $thisday = $days[((7*$WEEK)+$DAY)];
          # Get the cell content
          if (! $thisday) { # If it's a dummy cell, no content
@@ -185,24 +193,27 @@ sub as_HTML {
             # Normalize if there's no content
             $thiscontent .= '&nbsp;';
          }
-         # Get the cell's coloration
+         # Get the cell's coloration and CSS class
          if ($self->year == $todayyear && $self->month == $todaymonth && $thisday == $todaydate)
                                               { $thisbgcolor = $todaycolor;
                                                 $thisbordercolor = $todaybordercolor;
                                                 $thiscontentcolor = $todaycontentcolor;
+                                                $thiscellclass = $todaycellclass;
                                               }
          elsif (($DAY == 0) || ($DAY == 6))   { $thisbgcolor = $weekendcolor;
                                                 $thisbordercolor = $weekendbordercolor;
                                                 $thiscontentcolor = $weekendcontentcolor;
+                                                $thiscellclass = $weekendcellclass;
                                               }
          else                                 { $thisbgcolor = $weekdaycolor;
                                                 $thisbordercolor = $weekdaybordercolor;
                                                 $thiscontentcolor = $weekdaycontentcolor;
+                                                $thiscellclass = $weekdaycellclass;
                                               }
          # Done with this cell - push it into the table
          $html .= "<td";
          $html .= " nowrap" if $nowrap;
-         $html .= " class=\"$cellclass\"" if $cellclass;
+         $html .= " class=\"$thiscellclass\"" if $thiscellclass;
          $html .= " height=\"$cellheight\"" if $cellheight;
          $html .= " width=\"$cellwidth\"" if $cellwidth;
          $html .= " valign=\"$vcellalignment\"" if $vcellalignment;
@@ -508,6 +519,34 @@ sub cellclass {
     return $self->{'cellclass'};
 }
 
+sub weekdaycellclass {
+    my $self = shift;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'weekdaycellclass'} = $newvalue; }
+    return $self->{'weekdaycellclass'};
+}
+
+sub weekendcellclass {
+    my $self = shift;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'weekendcellclass'} = $newvalue; }
+    return $self->{'weekendcellclass'};
+}
+
+sub todaycellclass {
+    my $self = shift;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'todaycellclass'} = $newvalue; }
+    return $self->{'todaycellclass'};
+}
+
+sub headerclass {
+    my $self = shift;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'headerclass'} = $newvalue; }
+    return $self->{'headerclass'};
+}
+
 
 
 __END__;
@@ -784,7 +823,18 @@ To un-specify a height, try specifying a height of 0 or undef.
 
 =head1 cellclass([STRING])
 
-This specifies which CSS class will be attributed to the calendar cells. By default, no class is specified.
+=head1 weekdaycellclass([STRING])
+
+=head1 weekendcellclass([STRING])
+
+=head1 todaycellclass([STRING])
+
+=head1 headerclass([STRING])
+
+
+These specify which CSS class will be attributed to the calendar's cells. By default, no classes are specified or used.
+
+cellclass() is used for all calendar cells. weekdaycellclass(), weekendcellclass(), and todaycellclass() override the cellclass() for the corresponding types of cells. headerclass() is used for the calendar's header.
 
 If no value is given, the current value is returned.
 
@@ -817,7 +867,9 @@ Changes in 1.10: Added the headercontentcolor(), weekendheadercontentcolor(), an
 
 Changes in 1.11: The module's VERSION is now properly specified, so "use" statements won't barf if they specify a minimum version. Added the vcellalignment() method so vertical content alignment is independent of horizontal alignment.
 
-Changes in 1.12: Fixed lots of warnings that were generated if -w was used, due to many values defaulting to undef/blank. Added the sharpborders(), nowrap(), cellheight(), cellclass(), and weekdayheadersbig() methods. cellclass(), the beginning of CSS support. THanks, Bray!
+Changes in 1.12: Fixed lots of warnings that were generated if -w was used, due to many values defaulting to undef/blank. Added the sharpborders(), nowrap(), cellheight(), cellclass(), and weekdayheadersbig() methods. cellclass(), the beginning of CSS support. Thanks, Bray!
+
+Changes in 1.13: Added more CSS methods: headerclass(), weekdaycellclass(), weekndcellclass(), todaycellclass(). Added a test to the module distribution at the urging of CPAN testers.
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
@@ -843,4 +895,7 @@ Jessee Porter <porterje@us.ibm.com> provided fixes for 1.12 to correct those war
 Todd <todd@marigoldtech.com> requested the weekdayheadersbig() method.
 
 Bray Jones <bjones@vialogix.com> supplied the sharpborders(), nowrap(), cellheight(), cellclass() methods.
+
+Bill Turner <b@brilliantcorners.org> supplied the headerclass() method and the rest of the methods added to 1.13
+
 
