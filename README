@@ -247,11 +247,9 @@ weekendheadercolor([STRING])
 BUGS, TODO, CHANGES
     It would be nice if the week didn't have to start on Sunday. It
     would also be cool if the weekday headers could be changed
-    (Lunes, Martes, Miercoles,...) or suppressed. It'd be nice if
-    the month could be translated, as well. These features will
-    probably make in into the next version some time in April 2001.
-    If anyone wants to take on any of this work, please feel
-    invited.
+    (Lunes, Martes, Miercoles,...). It'd be nice if the month could
+    be translated, as well. If anyone wants to take on any of this
+    work, please feel invited.
 
     Changes in 1.01: Added VALIGN to cells, to make alignment work
     with browsers better. Added showweekdayheaders(). Corrected a
@@ -266,6 +264,10 @@ BUGS, TODO, CHANGES
 
     Changes in 1.04: Added the "which weekday" capability to
     addcontent(), setcontent(), and getcontent()
+
+    Changes in 1.05: addcontent(), et al can now take strings such
+    as '06' or decimals such as '3.14' and will handle them
+    intuitively
 
 AUTHORS, CREDITS, COPYRIGHTS
     This Perl module is freeware. It may be copied, derived, used,

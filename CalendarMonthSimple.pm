@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-my $VERSION     = "1.04";
+my $VERSION     = "1.05";
 use strict;
 use Date::Calc;
 
@@ -283,7 +283,7 @@ sub addcontent {
 sub _convertweekdaytodate {
    my $self = shift;
    my $day = shift || return();
-   return($day) if ($day eq int($day));
+   return(int($day)) if $day =~ /^[\d\.]+$/;
    # Figure out the numeric which+day, else bail if no match is found
    my $weekdaynames = {
                        'mon'=>1,'monday'=>1,
@@ -602,7 +602,7 @@ Finally, the color of the cells' contents may be set with contentcolor, weekdayc
 
 =head1 BUGS, TODO, CHANGES
 
-It would be nice if the week didn't have to start on Sunday. It would also be cool if the weekday headers could be changed (Lunes, Martes, Miercoles,...)  or suppressed. It'd be nice if the month could be translated, as well. These features will probably make in into the next version some time in April 2001. If anyone wants to take on any of this work, please feel invited.
+It would be nice if the week didn't have to start on Sunday. It would also be cool if the weekday headers could be changed (Lunes, Martes, Miercoles,...). It'd be nice if the month could be translated, as well. If anyone wants to take on any of this work, please feel invited.
 
 Changes in 1.01: Added VALIGN to cells, to make alignment work with browsers better. Added showweekdayheaders(). Corrected a bug that results in the month not fitting on the grid (e.g. March 2003).  Added getdatehref() and setdatehref(). Corrected a bug that causes a blank week to be printed at the beginning of some months.
 
@@ -611,6 +611,8 @@ Changes in 1.02: Added the color methods.
 Changes in 1.03: More color methods!
 
 Changes in 1.04: Added the "which weekday" capability to addcontent(), setcontent(), and getcontent()
+
+Changes in 1.05: addcontent(), et al can now take strings such as '06' or decimals such as '3.14' and will handle them intuitively
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
