@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.20";
+$HTML::CalendarMonthSimple::VERSION = "1.21";
 use strict;
 use Date::Calc;
 
@@ -48,11 +48,7 @@ sub new {
       $self->{'datecolor'}->{$datenumber}        = '';
       $self->{'datebordercolor'}->{$datenumber}  = '';
       $self->{'datecontentcolor'}->{$datenumber} = '';
-   }
-   # Initialize the non-standard date buckets: weekdays, etc.
-   foreach my $day ('sunday','monday','tuesday','wednesday','thursday','friday','saturday') {
-      $self->{'content'}->{$day."s"} = ''; # "Mondays", "Tuesdays", etc.
-      foreach my $which (1 .. 5) { $self->{'content'}->{$which.$day}       = ''; } # "2Sunday", "3Wednesday", etc.
+      $self->{'href'}->{$datenumber}             = '';
    }
 
    # All done!
@@ -204,7 +200,7 @@ sub as_HTML {
                 $thiscontent = "<p><b>$thisday</b></p>\n";
               }
             }
-            $thiscontent .= $self->getallcontent($thisday);
+            $thiscontent .= $self->{'content'}->{$thisday};
             $thiscontent ||= '&nbsp;';
          }
 
@@ -284,15 +280,19 @@ sub weekdays {
 
 sub getdatehref {
    my $self = shift;
-   my $date = shift || return();
-   return $self->{'href'}->{$date};
+   my @dates = $self->_date_string_to_numeric(shift); return() unless @dates;
+   return $self->{'href'}->{$dates[0]};
 }
 
 sub setdatehref {
    my $self = shift;
-   my $date = shift || return();
+   my @dates = $self->_date_string_to_numeric(shift); return() unless @dates;
    my $datehref = shift || '';
-   $self->{'href'}->{$date} = $datehref;
+
+   foreach my $date (@dates) {
+      $self->{'href'}->{$date} = $datehref if defined($self->{'href'}->{$date});
+   }
+
    return(1);
 }
 
@@ -423,84 +423,74 @@ sub todaycontentcolor {
 }
 
 sub datecolor {
-    my $self = shift;
-    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
-    my $newvalue = shift;
-    if (defined($newvalue)) { $self->{'datecolor'}->{$date} = $newvalue; }
-    return $self->{'datecolor'}->{$date};
+   my $self = shift;
+   my @dates = $self->_date_string_to_numeric(shift); return() unless @dates;
+   my $newvalue = shift;
+
+   if (defined($newvalue)) {
+      foreach my $date (@dates) {
+         $self->{'datecolor'}->{$date} = $newvalue if defined($self->{'datecolor'}->{$date});
+      }
+   }
+
+   return $self->{'datecolor'}->{$dates[0]};
 }
 
 sub datebordercolor {
-    my $self = shift;
-    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
-    my $newvalue = shift;
-    if (defined($newvalue)) { $self->{'datebordercolor'}->{$date} = $newvalue; }
-    return $self->{'datebordercolor'}->{$date};
+   my $self = shift;
+   my @dates = $self->_date_string_to_numeric(shift); return() unless @dates;
+   my $newvalue = shift;
+
+   if (defined($newvalue)) {
+      foreach my $date (@dates) {
+         $self->{'datebordercolor'}->{$date} = $newvalue if defined($self->{'datebordercolor'}->{$date});
+      }
+   }
+
+   return $self->{'datebordercolor'}->{$dates[0]};
 }
 
 sub datecontentcolor {
-    my $self = shift;
-    my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
-    my $newvalue = shift;
-    if (defined($newvalue)) { $self->{'datecontentcolor'}->{$date} = $newvalue; }
-    return $self->{'datecontentcolor'}->{$date};
+   my $self = shift;
+   my @dates = $self->_date_string_to_numeric(shift); return() unless @dates;
+   my $newvalue = shift;
+
+   if (defined($newvalue)) {
+      foreach my $date (@dates) {
+         $self->{'datecontentcolor'}->{$date} = $newvalue if defined($self->{'datecontentcolor'}->{$date});
+      }
+   }
+
+   return $self->{'datecontentcolor'}->{$dates[0]};
 }
 
 sub getcontent {
    my $self = shift;
-   my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
-   return $self->{'content'}->{$date};
-}
-
-sub getallcontent {
-   my $self = shift;
-   my $date = shift;
-   my $content = '';
-
-   # the total content is the content of the date, the Xth-weekday, and the weekdays
-   # e.g. for 2003.04.09 the content is 9, 2wednesday, and wednesdays
-
-   # cache the year and month, rather than call $self->year() and $self->month() repeatedly
-   # particularly cuz getallcontent() will be used in as_HTML() in a loop some 30 times!
-   my $year = $self->year(); my $month = $self->month();
-
-   # first off, if the date is in Xweekday format, change it to the numeric date
-   # we figure out the Xweekday again later, but this standardizes the code and only wastes a little CPU time
-   if (my($which,$weekday) = ($date =~ m/^(\d)([a-zA-Z]+)/)) {
-      my($y,$m,$d) = Date::Calc::Nth_Weekday_of_Month_Year($year,$month,Date::Calc::Decode_Day_of_Week($weekday),$which);
-      $date = $d;
-   }
-
-   # cache the day of the week, cuz it's used repeatedly in fetching content
-   my $weekday = Date::Calc::Day_of_Week($year,$month,$date);
-   my $weekday_text = lc(Date::Calc::Day_of_Week_to_Text($weekday));
-
-   # the content for this numeric date
-   $content .= $self->getcontent($date);
-   # content for Xweekday
-   my $which = int(Date::Calc::Delta_Days(Date::Calc::Nth_Weekday_of_Month_Year($year,$month,$weekday,1),$year,$month,$date) / 7) + 1;
-   $content .= $self->getcontent($which.$weekday_text);
-   # content for weekdays
-   $content .= $self->getcontent($weekday_text.'s');
-
-   return $content;
+   my @dates = $self->_date_string_to_numeric(shift); return() unless @dates;
+   return $self->{'content'}->{$dates[0]};
 }
 
 sub setcontent {
    my $self = shift;
-   my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d\.]+$/;
+   my @dates = $self->_date_string_to_numeric(shift); return() unless @dates;
    my $newcontent = shift || '';
-   return() unless defined($self->{'content'}->{$date});
-   $self->{'content'}->{$date} = $newcontent;
+
+   foreach my $date (@dates) {
+      $self->{'content'}->{$date} = $newcontent if defined($self->{'content'}->{$date});
+   }
+
    return(1);
 }
 
 sub addcontent {
    my $self = shift;
-   my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d+\.]+$/;
+   my @dates = $self->_date_string_to_numeric(shift); return() unless @dates;
    my $newcontent = shift || return();
-   return() unless defined($self->{'content'}->{$date});
-   $self->{'content'}->{$date} .= $newcontent;
+
+   foreach my $date (@dates) {
+      $self->{'content'}->{$date} .= $newcontent if defined($self->{'content'}->{$date});
+   }
+
    return(1);
 }
 
@@ -668,6 +658,34 @@ sub headerclass {
     return $self->{'headerclass'};
 }
 
+### the following methods are internal-use-only methods
+
+# _date_string_to_numeric() takes a date string (e.g. 5, 'wednesdays', or '3friday')
+# and returns the corresponding numeric date. For numerics, this sounds meaningless,
+# but for the strings it's useful to have this all in one place.
+# If it's a plural weekday (e.g. 'sundays') then an array of numeric dates is returned.
+sub _date_string_to_numeric {
+   my $self = shift;
+   my $date = shift || return ();
+
+   if ($date =~ m/^\d\.*\d*$/) { # first and easiest, simple numerics
+      return int($date);
+   }
+   elsif (my($which,$weekday) = ($date =~ m/^(\d)([a-zA-Z]+)$/)) {
+      my($y,$m,$d) = Date::Calc::Nth_Weekday_of_Month_Year($self->year(),$self->month(),Date::Calc::Decode_Day_of_Week($weekday),$which);
+      return $d;
+   }
+   elsif (my($weekday) = ($date =~ m/^(\w+)s$/i)) {
+      $weekday = Date::Calc::Decode_Day_of_Week($weekday); # now it's the numeric weekday
+      my @dates;
+      foreach my $which (1..5) {
+         my $thisdate = Date::Calc::Nth_Weekday_of_Month_Year($self->year(),$self->month(),$weekday,$which);
+         push(@dates,$thisdate) if $thisdate;
+      }
+      return @dates;
+   }
+}
+
 
 
 __END__;
@@ -712,7 +730,7 @@ Naturally, new() returns a newly constructed calendar object. Recognized argumen
    # Create a calendar for this month.
    $cal = new HTML::CalendarMonthSimple();
    # One for a specific month/year
-   $cal = new HTML::CalendarMonthSimple('month'=>2,'year=>2000);
+   $cal = new HTML::CalendarMonthSimple('month'=>2,'year'=>2000);
    # One for "the current month" in 1997
    $cal = new HTML::CalendarMonthSimple('year'=>1997);
 
@@ -735,13 +753,12 @@ These methods simply return the year/month of the calendar. monthname() returns 
 
 These methods are used to control the content of date cells within the calendar grid. The DATE argument may be a numeric date or it may be a string describing a certain occurrence of a weekday, e.g. "3MONDAY" to represent "the third Monday of the month being worked with", or it may be the plural of a weekday name, e.g. "wednesdays" to represent all occurrences of the given weekday. The weekdays are case-insensitive.
 
+Since plural weekdays (e.g. 'wednesdays') is not a single date, getcontent() will return the content only for the first occurrence of that day within a month.
+
    # Examples:
    # The cell for the 15th of the month will now say something.
    $cal->setcontent(15,"An Important Event!");
    # Later down the program, we want the content to be boldfaced.
-   $foo = "<b>" . $cal->getcontent(15) . "</b>";
-   $cal->setcontent(15,$foo);
-   # Or we could get extra spiffy:
    $cal->setcontent(15,"<b>" . $cal->getcontent(15) . "</b>");
 
    # addcontent() does not clobber existing content.
@@ -758,35 +775,31 @@ These methods are used to control the content of date cells within the calendar 
 
    # The second Sunday of May is some holiday or another...
    $cal->addcontent('2sunday','Some Special Day') if ($cal->month() == 5);
-   # So is the third wednesday of this month
-   $cal->setcontent('3WedNEsDaY','Third Wednesday!');
-   # What's scheduled for the second Friday?
-   $cal->getcontent('2FRIDAY');
 
-   # Every Wednesday and Friday of this month...
+   # Every Wednesday is special...
    $cal->addcontent('wednesdays','Every Wednesday!');
-   $cal->getcontent('Fridays');
 
-Note: The storage for the three date types is in three separate buckets, e.g. even if the 9th of a month is the second Wednesday of that month, if you setcontent() for the 9th of the month, then you addcontent() for the '2wednesday' of that month, then getcontent(9) and getcontent('2wednesday') will each return their own content, not the combined contents! If you want to use a date or a Nweekday to fetch all the content for that date, use getallcontent() instead of getcontent().
+   # either of these will return the content for the 1st Friday of the month
+   $cal->getcontent('1friday');
+   $cal->getcontent('Fridays'); # you really should use '1friday' for the first Friday
 
+Note: A change in 1.21 is that all content is now stored in a single set of date-indexed buckets. Previously, the content for weekdays, plural weekdays, and numeric dates were stored separately and could be fetched and set independently. This led to buggy behavior, so now a single storage set is used.
 
+   # Example:
+   # if the 9th of the month is the second Wednesday...
+   $cal->setcontent(9,'ninth');
+   $cal->addcontent('2wednesday','second wednesday');
+   $cal->addcontent('wednesdays','every wednesday');
+   print $cal->getcontent(9);
 
-=head1 getallcontent(DATE)
+In version 1.20 and previous, this would print 'ninth' but in 1.21 and later, this will print all three items (since the 9th is not only the 9th but also a Wednesday and the second Wednesday). This could have implications if you use setcontent() on a set of days, since other content may be overwritten:
 
-This is similar to getcontent() except that it is smart enough to combine all the content for a given date with the content for that weekday. This addresses the shortcoming discussed in the getcontent()'s description. The DATE must be either a numeric date (e.g. 9) or a string describing a certain occurrence of a weekday (e.g. '2wednesday). It is not acceptable to use a plural weekday name (e.g. 'wednesdays').
-
-   # example:
-   # getcontent() fetches individual buckets of content
-   # assume that the 9th is the second wednesday of the month...
-   $cal->addcontent(9,"the ninth\n");
-   $cal->addcontent('2wednesday',"second wednesday\n");
-   $cal->addcontent('wednesdays',"every wednesday\n");
-   print $cal->getcontent(9); # only prints the '9' bucket, not the others!
-   #
-   # on the other hand, getallcontent() is smart enough to combine the three content buckets...
-   # both of these will print the same thing: "the ninth\nsecond wednesday\nevery wednesday\n"
-   print $cal->getallcontent(9);
-   print $cal->getcontent('2wednesday');
+   # Example:
+   # the second setcontent() effectively overwrites the first one
+   $cal->setcontent(9,'ninth');
+   $cal->setcontent('2wednesday','second wednesday');
+   $cal->setcontent('wednesdays','every wednesday');
+   print $cal->getcontent(9); # returns 'every wednesday' because that was the last assignment!
 
 
 
@@ -805,16 +818,24 @@ It's okay to continue modifying the calendar after calling as_HTML(). My guess i
 
 =head1 getdatehref(DATE)
 
-These methods are used to control the content of date cells within the calendar grid.
+These allow the date-number in a calendar cell to become a hyperlink to the specified URL. The DATE may be either a numeric date or any of the weekday formats described in setcontent(), et al. If plural weekdays (e.g. 'wednesdays') are used with getdatehref() the URL of the first occurrence of that weekday in the month will be returned (since 'wednesdays' is not a single date).
 
    # Example:
-   # The date number in the cell for the 15th of the month will 
-   # be a link to the sourceforge website
+   # The date number in the cell for the 15th of the month will be a link
+   # then we change our mind and delete the link by assigning a null string
    $cal->setdatehref(15,"http://sourceforge.net/");
+   $cal->setdatehref(15,'');
 
    # Example:
-   # You want to add to an URL
-   $cal->setdatehref(15, $getdatehref(15)."projects/perl/");
+   # the second Wednesday of the month goes to some website
+   $cal->setdatehref('2wednesday','http://www.second-wednesday.com/');
+
+   # Example:
+   # every Wednesday goes to a website
+   # note that this will effectively undo the '2wednesday' assignment we just did!
+   # if we wanted the second Wednesday to go to that special URL, we should've done that one after this!
+   $cal->setdatehref('wednesdays','http://every-wednesday.net/');
+
 
 
 =head1 contentfontsize([STRING])
@@ -957,11 +978,18 @@ Finally, the color of the cells' contents may be set with contentcolor, weekdayc
 
 These methods set the cell color and the content color for the specified date, and will return the current value if STRING is not specified. These color settings will override any of the settings mentioned above, even todaycolor() and todaycontentcolor().
 
-The date must be numeric; it cannot be a string such as "2wednesday"
+The date may be a numeric date or a weekday string as described in setcontent() et al. Note that if a plural weekday is used (e.g. 'sundays') then, since it's not a single date, the value for the first occurrence of that weekday will be returned (e.g. the first Sunday's color).
 
-  # Example: a red-letter day!
-  $cal->datecolor(3,'pink');
-  $cal->datecontentcolor(3,'red');
+   # Example: a red-letter day!
+   $cal->datecolor(3,'pink');
+   $cal->datecontentcolor(3,'red');
+
+   # Example:
+   # Every Tuesday is a Soylent Green day...
+   # Note that if the 3rd was a Tuesday, this later assignment would override the previous one.
+   # see the docs for setcontent() et all for more information.
+   $cal->datecolor('tuesdays','green');
+   $cal->datecontentcolor('tuesdays','yellow');
 
 
 
@@ -1080,6 +1108,10 @@ Changes in 1.18: Added methods: tableclass(), sunday(), saturday(), weekdays(). 
 
 Changes in 1.19: Fixed as_HTML() such that blank/0 values can be used for various values, e.g. border size, colors, etc. Previously, values had to be non-zero or they were assumed to be undefined.
 
+Ver 1.20 was a mistake on my part and was immediately superseded by 1.21.
+
+Changes in 1.21: Fixed the internals of setcontent() et al (see the method's doc for details). Made getdatehref(), setdatehref(), and datecolor() et al, able to handle weekdays in addition to numeric dates.
+
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
@@ -1111,4 +1143,6 @@ Bill Rhodes <wrhodes@27.org> provided the contentfontsize() method for version 1
 Alberto Simões <albie@alfarrabio.di.uminho.pt> provided the tableclass() function and the saturday(), sunday(), and weekdays() functions for version 1.18. Thanks, Alberto, I've been wanting this since the beginning!
 
 Blair Zajac <blair@orcaware.com> provided the fixes for 1.19
+
+Thanks to Kurt <kurt@otown.com> for the bug report that made all the new stuff in 1.21 possible.
 
