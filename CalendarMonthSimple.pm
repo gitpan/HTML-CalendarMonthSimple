@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.17";
+$HTML::CalendarMonthSimple::VERSION = "1.18";
 use strict;
 use Date::Calc;
 
@@ -29,6 +29,10 @@ sub new {
    $self->{'vcellalignment'}     = 'top';
    $self->{'weekdayheadersbig'}  = 1;
    $self->{'nowrap'}             = 0;
+
+   $self->{'weekdays'} = [qw/Monday Tuesday Wednesday Thursday Friday/];
+   $self->{'sunday'}   = "Sunday";
+   $self->{'saturday'} = "Saturday";
 
    # Set the default calendar header
    $self->{'header'} = sprintf("<center><font size=+2>%s %d</font></center>",
@@ -104,6 +108,7 @@ sub as_HTML {
    my $sharpborders = $self->sharpborders() || 0;
    my $cellheight = $self->cellheight();
    my $cellclass = $self->cellclass();
+   my $tableclass = $self->tableclass();
    my $weekdaycellclass = $self->weekdaycellclass() || $self->cellclass();
    my $weekendcellclass = $self->weekendcellclass() || $self->cellclass();
    my $todaycellclass = $self->todaycellclass() || $self->cellclass();
@@ -115,6 +120,7 @@ sub as_HTML {
    # the table declaration - sharpborders wraps the table inside a table cell
    if ($sharpborders) {
       $html .= "<table border=\"0\"";
+      $html .= " class=\"$tableclass\"" if $tableclass;
       $html .= " width=\"$tablewidth\"" if $tablewidth;
       $html .= " cellpadding=\"0\" cellspacing=\"0\">\n";
       $html .= "<tr valign=\"top\" align=\"left\">\n";
@@ -124,13 +130,14 @@ sub as_HTML {
       $html .= "<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"100%\">";
    }
    else {
-      $html .= "<table ";
-      $html .= "border=\"$border\"" if $border;
-      $html .= "width=\"$tablewidth\"" if $tablewidth;
-      $html .= "bgcolor=\"$bgcolor\"" if $bgcolor;
-      $html .= "bordercolor=\"$bordercolor\"" if $bordercolor;
-      $html .= "cellpadding=\"$cellpadding\"" if $cellpadding;
-      $html .= "cellspacing=\"$cellspacing\""  if $cellspacing;
+      $html .= "<table";
+      $html .= " class=\"$tableclass\"" if $tableclass;
+      $html .= " border=\"$border\"" if $border;
+      $html .= " width=\"$tablewidth\"" if $tablewidth;
+      $html .= " bgcolor=\"$bgcolor\"" if $bgcolor;
+      $html .= " bordercolor=\"$bordercolor\"" if $bordercolor;
+      $html .= " cellpadding=\"$cellpadding\"" if $cellpadding;
+      $html .= " cellspacing=\"$cellspacing\""  if $cellspacing;
       $html .= ">\n";
    }
    # the header
@@ -147,16 +154,17 @@ sub as_HTML {
    # the names of the days of the week
    if ($self->showweekdayheaders) {
       my $celltype = $self->weekdayheadersbig() ? "th" : "td";
+      my @weekdays = $self->weekdays();
       $html .= "<tr>\n";
       $html .= "<$celltype";
       $html .= " bgcolor=\"$weekendheadercolor\"" if $weekendheadercolor;
       $html .= " class=\"$weekendcellclass\"" if $weekendcellclass;
       $html .= ">";
       $html .= "<font color=\"$weekendheadercontentcolor\">" if $weekendheadercontentcolor;
-      $html .= "Sunday";
+      $html .= $self->sunday();
       $html .= "</font>" if $weekendheadercontentcolor;
       $html .= "</$celltype>\n";
-      foreach ("Monday","Tuesday","Wednesday","Thursday","Friday"){
+      foreach (@weekdays) { # draw the weekday headers
          $html .= "<$celltype";
          $html .= " bgcolor=\"$weekdayheadercolor\"" if $weekdayheadercolor;
          $html .= " class=\"$weekdaycellclass\"" if $weekdaycellclass;
@@ -171,7 +179,7 @@ sub as_HTML {
       $html .= " class=\"$weekendcellclass\"" if $weekendcellclass;
       $html .= ">";
       $html .= "<font color=\"$weekendheadercontentcolor\">" if $weekendheadercontentcolor;
-      $html .= "Saturday";
+      $html .= $self->saturday();
       $html .= "</font>" if $weekendheadercontentcolor;
       $html .= "</$celltype>\n";
       $html .= "</tr>\n";
@@ -203,7 +211,7 @@ sub as_HTML {
             # Content for "Wednesdays", etc.
             $thiscontent .= $self->getcontent(('sundays','mondays','tuesdays','wednesdays','thursdays','fridays','saturdays')[$DAY]);
             # Normalize if there's no content
-            $thiscontent .= '&nbsp;';
+            $thiscontent ||= '&nbsp;';
          }
 
          # Get the cell's coloration and CSS class
@@ -256,7 +264,26 @@ sub as_HTML {
 }
 
 
+sub sunday {
+   my $self = shift;
+   my $newvalue = shift;
+   $self->{'sunday'} = $newvalue if defined($newvalue);
+   return $self->{'sunday'};
+}
 
+sub saturday {
+   my $self = shift;
+   my $newvalue = shift;
+   $self->{'saturday'} = $newvalue if defined($newvalue);
+   return $self->{'saturday'};
+}
+
+sub weekdays {
+   my $self = shift;
+   my @days = @_;
+   $self->{'weekdays'} = \@days if (scalar(@days)==5);
+   return @{$self->{'weekdays'}};
+}
 
 sub getdatehref {
    my $self = shift;
@@ -567,6 +594,13 @@ sub cellclass {
     return $self->{'cellclass'};
 }
 
+sub tableclass {
+    my $self = shift;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'tableclass'} = $newvalue; }
+    return $self->{'tableclass'};
+}
+
 sub weekdaycellclass {
     my $self = shift;
     my $newvalue = shift;
@@ -799,6 +833,7 @@ If the header is set to an empty string, then no header will be printed at all. 
    $cal->header("<center><font size=+2 color=red>$m $y</font></center>\n\n");
 
 
+
 =head1 bgcolor([STRING])
 
 =head1 weekdaycolor([STRING])
@@ -883,11 +918,13 @@ The date must be numeric; it cannot be a string such as "2wednesday"
 If set to 1, then calendar cells will have the NOWRAP attribute set, preventing their content from wrapping. If set to 0 (the default) then NOWRAP is not used and very long content may cause cells to become stretched out.
 
 
+
 =head1 sharpborders([1 or 0])
 
 If set to 1, this gives very crisp edges between the table cells. If set to 0 (the default) standard HTML cells are used. If neither value is specified, the current value is returned.
 
 FYI: To accomplish the crisp border, the entire calendar table is wrapped inside a table cell.
+
 
 
 =head1 cellheight([NUMBER])
@@ -899,6 +936,8 @@ If no value is given, the current value is returned.
 To un-specify a height, try specifying a height of 0 or undef.
 
 
+
+=head1 tableclass([STRING])
 
 =head1 cellclass([STRING])
 
@@ -913,7 +952,9 @@ To un-specify a height, try specifying a height of 0 or undef.
 =head1 headerclass([STRING])
 
 
-These specify which CSS class will be attributed to the calendar's cells. By default, no classes are specified or used.
+These specify which CSS class will be attributed to the calendar's table and the calendar's cells. By default, no classes are specified or used.
+
+tableclass() sets the CSS class for the calendar table.
 
 cellclass() is used for all calendar cells. weekdaycellclass(), weekendcellclass(), and todaycellclass() override the cellclass() for the corresponding types of cells. headerclass() is used for the calendar's header.
 
@@ -923,6 +964,27 @@ If no value is given, the current value is returned.
 
 To un-specify a class, try specifying an empty string, e.g. cellclass('')
 
+
+
+=head1 sunday([STRING])
+
+=head1 saturday([STRING])
+
+=head1 weekdays([MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY])
+
+These functions allow the days of the week to be "renamed", which is useful for displaying the weekday headers in another language.
+
+   # show the days of the week in Spanish
+   $cal->saturday('Sábado');
+   $cal->sunday('Domingo');
+   $cal->weekdays('Lunes','Martes','Miércoles','Jueves','Viernes');
+
+   # show the days of the week in German
+   $cal->saturday('Samstag');
+   $cal->sunday('Sonntag');
+   $cal->weekdays('Montag','Dienstag','Mittwoch','Donnerstag','Freitag');
+
+If no value is specified (or, for weekdays() if exactly 5 arguments aren't given) then the current value is returned.
 
 
 
@@ -962,6 +1024,8 @@ Changes in 1.16: Fixed a very stupid bug that made addcontent() and setcontent()
 
 Changes in 1.17: Corrected B<-w> warnings about uninitialized values in as_HTML().
 
+Changes in 1.18: Added methods: tableclass(), sunday(), saturday(), weekdays(). Now day names can be internationalized!
+
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
@@ -990,4 +1054,5 @@ Bill Turner <b@brilliantcorners.org> supplied the headerclass() method and the r
 
 Bill Rhodes <wrhodes@27.org> provided the contentfontsize() method for version 1.14
 
+Alberto Simões <albie@alfarrabio.di.uminho.pt> provided the tableclass() function and the saturday(), sunday(), and weekdays() functions for version 1.18. Thanks, Alberto, I've been wanting this since the beginning!
 
