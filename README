@@ -35,7 +35,7 @@ new(ARGUMENTS)
        $cal = new HTML::CalendarMonthSimple();
        # One for a specific month/year
        $cal = new HTML::CalendarMonthSimple('month'=>2,'year=>2000);
-       # One for "the current date" in 1997
+       # One for "the current month" in 1997
        $cal = new HTML::CalendarMonthSimple('year'=>1997);
 
 setcontent(DATE,STRING)
@@ -163,32 +163,59 @@ header([STRING])
 bgcolor([STRING])
 weekdaycolor([STRING])
 weekendcolor([STRING])
-weekdayheadercolor([STRING])
+todaycolor([STRING])
+bordercolor([STRING])
+weekdaybordercolor([STRING])
+weekendbordercolor([STRING])
+todaybordercolor([STRING])
+contentcolor([STRING])
+weekdaycontentcolor([STRING])
+weekendcontentcolor([STRING])
+todaycontentcolor([STRING])
 headercolor([STRING])
-    These define the colors of the cells. If a string (which should be a
-    HTML color-code like '#000000' or a color-word like 'yellow') is
-    supplied as an argument, then the color is set to that specified.
+weekdayheadercolor([STRING])
+weekendheadercolor([STRING])
+    These define the colors of the cells. If a string (which should be
+    either a HTML color-code like '#000000' or a color-word like 'yellow')
+    is supplied as an argument, then the color is set to that specified.
     Otherwise, the current value is returned. To un-set a value, try
     assigning the null string as a value.
 
     The bgcolor defines the color of all cells. The weekdaycolor overrides
-    the bgcolor for weekdays (Monday thru\ough Friday), and the weekendcolor
-    overrides the bgcolor for weekend days (Saturday and Sunday). The
-    weekdayheadercolor overrides the bgcolor for the weekday headers that
-    appear at the top of the calendar if showweekdayheaders() is true. The
+    the bgcolor for weekdays (Monday through Friday), the weekendcolor
+    overrides the bgcolor for weekend days (Saturday and Sunday), and the
+    todaycolor overrides the bgcolor for today's date. (Which may not mean a
+    lot if you're looking at a calendar other than the current month.)
+
+    The weekdayheadercolor overrides the bgcolor for the weekday headers
+    that appear at the top of the calendar if showweekdayheaders() is true,
+    and weekendheadercolor does the same thing for the weekend headers. The
     headercolor overrides the bgcolor for the month/year header at the top
     of the calendar.
 
+    The colors of the cell borders may be set: bordercolor determines the
+    color of the calendar grid's outside border, and is the default color of
+    the inner border for individual cells. The inner bordercolor may be
+    overridden for the various types of cells via weekdaybordercolor,
+    weekendbordercolor, and todaybordercolor.
+
+    Finally, the color of the cells' contents may be set with contentcolor,
+    weekdaycontentcolor, weekendcontentcolor, and todaycontentcolor. The
+    contentcolor is the default color of cell content, and the other methods
+    override this for the appropriate days' cells.
+
        # Example:
-       # This sets a default cell color, and then overrides the cell colors.
-       # Only the weekday headers aren't overridden, so only they will show
-       # the default bgcolor of green.
-       # P.S. I don't recommend this color scheme for production use. ;)
-       $cal->bgcolor('green');
-       $cal->weekdaycolor('orange');
-       $cal->weekendcolor('blue');
-       #$cal->weekdayheadercolor('silver');
-       $cal->headercolor('yellow');
+       $cal->bgcolor('white');                 # Set the default cell color
+       $cal->bordercolor('green');             # Set the default border color
+       $cal->contentcolor('black');            # Set the default content color
+       $cal->headercolor('yellow');            # Set the color of the Month+Year header
+       $cal->weekdayheadercolor('orange');     # Set the color of weekdays' headers
+       $cal->weekendheadercolor('pink');       # Set the color of weekends' headers
+       $cal->weekendcolor('palegreen');        # Override weekends' cell color
+       $cal->weekendcontentcolor('blue');      # Override weekends' content color
+       $cal->todaycolor('red');                # Override today's cell color
+       $cal->todaycontentcolor('yellow');      # Override today's content color
+       print $cal->as_HTML;                    # Print a really ugly calendar!
 
 BUGS, TODO, CHANGES
     It would be nice if the week didn't have to start on Sunday. It would
@@ -206,7 +233,12 @@ BUGS, TODO, CHANGES
 
     Changes in 1.02: Added the color methods.
 
+    Changes in 1.03: More color methods!
+
 AUTHORS, CREDITS, COPYRIGHTS
+    This Perl module is freeware. It may be copied, derived, used, and
+    distributed without limitation.
+
     HTML::CalendarMonth was written and is copyrighted by Matthew P. Sisk
     <sisk@mojotoad.com> and provided inspiration for the module's interface
     and features. Frankly, the major inspiration was the difficulty and
@@ -223,8 +255,9 @@ AUTHORS, CREDITS, COPYRIGHTS
     setdatehref() methods, and pointed out the bugs that were corrected in
     1.01.
 
-    Danny J. Sohier <danny@gel.ulaval.ca> provided the color functions.
+    Danny J. Sohier <danny@gel.ulaval.ca> provided many of the color
+    functions.
 
-    This Perl module is freeware. It may be copied, derived, used, and
-    distributed without limitation.
+    Bernie Ledwick <bl@man.fwltech.com> provided base code for the today*()
+    functions, and for the handling of cell borders.
 
