@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.24";
+$HTML::CalendarMonthSimple::VERSION = "1.25";
 use strict;
 use Date::Calc;
 
@@ -1071,7 +1071,7 @@ Finally, the color of the cells' contents may be set with contentcolor, weekdayc
    $cal->bordercolor('green');              # Set the default border color
    $cal->contentcolor('black');             # Set the default content color
    $cal->headercolor('yellow');             # Set the bgcolor of the Month+Year header
-   $cal->headercontentcolor('yellow')       # Set the content color of the Month+Year header
+   $cal->headercontentcolor('yellow');      # Set the content color of the Month+Year header
    $cal->weekdayheadercolor('orange');      # Set the bgcolor of weekdays' headers
    $cal->weekendheadercontentcolor('blue'); # Set the color of weekday headers' contents
    $cal->weekendheadercolor('pink');        # Set the bgcolor of weekends' headers
@@ -1230,6 +1230,8 @@ Changes in 1.22: Added the much-desired weekstartsonmonday() method. Now weeks c
 Changes in 1.23: Added today_year() et al. "Today" can now be overridden in the constructor.
 
 Changes in 1.24: Minor corrections to the HTML so it passes XML validation. Thanks a bundle, Peter!
+
+Changes in 1.25: A minor typo correction. Nothing big.
 
 
 
