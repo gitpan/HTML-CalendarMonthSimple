@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.22";
+$HTML::CalendarMonthSimple::VERSION = "1.23";
 use strict;
 use Date::Calc;
 
@@ -16,9 +16,17 @@ sub new {
    my $class = shift; $class = ref($class) || $class;
    my $self = {}; %$self = @_; # Load ourselves up from the args
 
-   # Set the month and year to either args or today
-   ($self->{'month'})  || ($self->{'month'}  = (Date::Calc::Today)[1]);
-   ($self->{'year'})   || ($self->{'year'}   = (Date::Calc::Today)[0]);
+   # figure out the current date (which may be specified as today_year, et al
+   # then figure out which year+month we're supposed to display
+   {
+      my($year,$month,$date) = Date::Calc::Today();
+      $self->{'today_year'}  = $self->{'today_year'} || $year;
+      $self->{'today_month'} = $self->{'today_month'} || $month;
+      $self->{'today_date'}  = $self->{'today_date'} || $date;
+      $self->{'month'}       = $self->{'month'} || $self->{'today_month'};
+      $self->{'year'}        = $self->{'year'}  || $self->{'today_year'};
+      $self->{'monthname'}   = Date::Calc::Month_to_Text($self->{'month'});
+   }
 
    # Some defaults
    $self->{'border'}             = 5;
@@ -37,9 +45,6 @@ sub new {
    # Set the default calendar header
    $self->{'header'} = sprintf("<center><font size=+2>%s %d</font></center>",
                                Date::Calc::Month_to_Text($self->{'month'}),$self->{'year'});
-
-   # Get the monthname now so monthname() is fast and efficient
-   $self->{'monthname'} = Date::Calc::Month_to_Text($self->{'month'});
 
    # Initialize the (empty) cell content so the keys are representative of the month
    foreach my $datenumber ( 1 .. Date::Calc::Days_in_Month($self->{'year'},$self->{'month'}) ) {
@@ -119,8 +124,9 @@ sub as_HTML {
    my $todaycellclass = $self->todaycellclass() || $self->cellclass();
    my $headerclass = $self->headerclass() || $self->cellclass();
    my $nowrap = $self->nowrap();
+
    # Get today's date, in case there's a todaycolor()
-   my($todayyear,$todaymonth,$todaydate) = Date::Calc::Today();
+   my($todayyear,$todaymonth,$todaydate) = ($self->today_year(),$self->today_month(),$self->today_date());
 
    # the table declaration - sharpborders wraps the table inside a table cell
    if ($sharpborders) {
@@ -638,6 +644,21 @@ sub monthname {
    return $self->{'monthname'};
 }
 
+sub today_year {
+   my $self = shift;
+   return $self->{'today_year'};
+}
+
+sub today_month {
+   my $self = shift;
+   return $self->{'today_month'};
+}
+
+sub today_date {
+   my $self = shift;
+   return $self->{'today_date'};
+}
+
 
 sub header {
    my $self = shift;
@@ -725,7 +746,6 @@ sub weekstartsonmonday {
 }
 
 
-
 ### the following methods are internal-use-only methods
 
 # _date_string_to_numeric() takes a date string (e.g. 5, 'wednesdays', or '3friday')
@@ -793,24 +813,36 @@ This module requires the Date::Calc module, which is available from CPAN if you 
 
 =head1 new(ARGUMENTS)
 
-Naturally, new() returns a newly constructed calendar object. Recognized arguments are 'year' and 'month', to specify which month's calendar will be used. If either is omitted, the current value is used. An important note is that the month and the year are NOT the standard C or Perl -- use a month in the range 1-12 and a real year, e.g. 2001.
+Naturally, new() returns a newly constructed calendar object.
+
+The optional constructor arguments 'year' and 'month' can specify which month's calendar will be used. If either is omitted, the current value (e.g. "today") is used. An important note is that the month and the year are NOT the standard C or Perl -- use a month in the range 1-12 and a real year, e.g. 2001.
+
+The arguments 'today_year', 'today_month', and 'today_date' may also be specified, to specify what "today" is. If not specified, the system clock will be used. This is particularly useful when the todaycolor() et al methods are used, and/or if you're dealing with multiple timezones. Note that these arguments change what "today" is, which means that if you specify a today_year and a today_month then you are effectively specifying a 'year' and 'month' argument as well, though you can also specify a year and month argument and override the "today" behavior.
 
    # Examples:
    # Create a calendar for this month.
    $cal = new HTML::CalendarMonthSimple();
-   # One for a specific month/year
+   # A calendar for a specific month/year
    $cal = new HTML::CalendarMonthSimple('month'=>2,'year'=>2000);
-   # One for "the current month" in 1997
-   $cal = new HTML::CalendarMonthSimple('year'=>1997);
+   # Pretend that today is June 10, 2000 and display the "current" calendar
+   $cal = new HTML::CalendarMonthSimple('today_year'=>2000,'today_month'=>6,'today_date'=>10);
 
 
 =head1 year()
 
 =head1 month()
 
+=head1 today_year()
+
+=head1 today_month()
+
+=head1 today_date()
+
 =head1 monthname()
 
-These methods simply return the year/month of the calendar. monthname() returns the text name of the month, e.g. "December".
+These methods simply return the year/month/date of the calendar, as specified in the constructor.
+
+monthname() returns the text name of the month, e.g. "December".
 
 
 
@@ -1195,6 +1227,8 @@ Changes in 1.21: Fixed the internals of setcontent() et al (see the method's doc
 
 Changes in 1.22: Added the much-desired weekstartsonmonday() method. Now weeks can start on Monday and end with the weekend, instead of the American style of starting on Sunday.
 
+Changes in 1.23: Added today_year() et al. "Today" can now be overridden in the constructor.
+
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
@@ -1230,4 +1264,6 @@ Blair Zajac <blair@orcaware.com> provided the fixes for 1.19
 Thanks to Kurt <kurt@otown.com> for the bug report that made all the new stuff in 1.21 possible.
 
 Many thanks to Stefano Rodighiero <larsen@libero.it> for the code that made weekstartsonmonday() possible. This was a much-requested feature that will make many people happy!
+
+Dan Boitnott <dboitnot@yahoo.com> provided today_year() et al in 1.23
 
