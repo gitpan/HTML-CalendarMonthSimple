@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-my $VERSION     = "1.06";
+my $VERSION     = "1.07";
 use strict;
 use Date::Calc;
 
@@ -116,7 +116,7 @@ sub as_HTML {
             # Content for "Wednesdays", etc.
             $thiscontent .= $self->getcontent(('sundays','mondays','tuesdays','wednesdays','thursdays','fridays','saturdays')[$DAY]);
             # Normalize if there's no content
-            $thiscontent = '&nbsp;' unless $thiscontent;
+            $thiscontent .= '&nbsp;';
          }
          # Get the cell's coloration
          if ($self->year == $todayyear && $self->month == $todaymonth && $thisday == $todaydate)
@@ -596,6 +596,8 @@ Changes in 1.04: Added the "which weekday" capability to addcontent(), setconten
 Changes in 1.05: addcontent(), et al can now take strings such as '06' or decimals such as '3.14' and will handle them correctly.
 
 Changes in 1.06: Changed the "which weekday" interface a bit; truncations such as "2Tue" no longer work, and must be spelled out entirely ("2Tuesday"). Added "plural weekdays" support (e.g. "wednesdays" for "every wednesday").
+
+Changes in 1.07: Fixed a typo that caused an entirely empty calendar to be displayed very small.
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
