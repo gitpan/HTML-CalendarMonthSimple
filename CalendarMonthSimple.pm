@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.21";
+$HTML::CalendarMonthSimple::VERSION = "1.22";
 use strict;
 use Date::Calc;
 
@@ -56,16 +56,25 @@ sub new {
 }
 
 
-
 sub as_HTML {
    my $self = shift;
+   my %params = @_; 
    my $html = '';
    my(@days,$weeks,$WEEK,$DAY);
 
    # To make the grid even, pad the start of the series with 0s
    @days = (1 .. Date::Calc::Days_in_Month($self->year(),$self->month() ) );
-   foreach (1 .. (Date::Calc::Day_of_Week($self->year(),$self->month(),1)%7) ) {
-      unshift(@days,0);
+   if ($self->weekstartsonmonday()) {
+       foreach (1 .. (Date::Calc::Day_of_Week($self->year(),
+                                              $self->month(),1) -1 )) {
+          unshift(@days,0);
+       }
+   }
+   else {
+       foreach (1 .. (Date::Calc::Day_of_Week($self->year(),
+                                              $self->month(),1)%7) ) {
+          unshift(@days,0);
+       }
    }
    $weeks = int((scalar(@days)+6)/7);
    # And pad the end as well, to avoid "uninitialized value" warnings
@@ -151,39 +160,88 @@ sub as_HTML {
    if ($self->showweekdayheaders) {
       my $celltype = $self->weekdayheadersbig() ? "th" : "td";
       my @weekdays = $self->weekdays();
-      $html .= "<tr>\n";
-      $html .= "<$celltype";
-      $html .= " bgcolor=\"$weekendheadercolor\"" if defined $weekendheadercolor;
-      $html .= " class=\"$weekendcellclass\"" if defined $weekendcellclass;
-      $html .= ">";
-      $html .= "<font color=\"$weekendheadercontentcolor\">" if defined $weekendheadercontentcolor;
-      $html .= $self->sunday();
-      $html .= "</font>" if defined $weekendheadercontentcolor;
-      $html .= "</$celltype>\n";
+
+      my $saturday_html = "<$celltype"
+                        . ( defined $weekendheadercolor 
+                            ? qq| bgcolor="$weekendheadercolor"| 
+                            : '' )
+                        . ( defined $weekendcellclass 
+                            ? qq| class="$weekendcellclass"| 
+                            : '' ) 
+                        . ">"
+                        . ( defined $weekendheadercontentcolor 
+                            ? qq|<font color="$weekendheadercontentcolor">| 
+                            : '' ) 
+                        . $self->saturday()
+                        . ( defined $weekendheadercontentcolor 
+                            ? qq|</font>|
+                            : '' )
+                        . "</$celltype>\n";
+
+      my $sunday_html   = "<$celltype"
+                        . ( defined $weekendheadercolor 
+                            ? qq| bgcolor="$weekendheadercolor"| 
+                            : '' )
+                        . ( defined $weekendcellclass 
+                            ? qq| class="$weekendcellclass"| 
+                            : '' ) 
+                        . ">"
+                        . ( defined $weekendheadercontentcolor 
+                            ? qq|<font color="$weekendheadercontentcolor">| 
+                            : '' ) 
+                        . $self->sunday()
+                        . ( defined $weekendheadercontentcolor 
+                            ? qq|</font>|
+                            : '' )
+                        . "</$celltype>\n";
+      
+      my $weekday_html = '';
       foreach (@weekdays) { # draw the weekday headers
-         $html .= "<$celltype";
-         $html .= " bgcolor=\"$weekdayheadercolor\"" if defined $weekdayheadercolor;
-         $html .= " class=\"$weekdaycellclass\"" if defined $weekdaycellclass;
-         $html .= ">";
-         $html .= "<font color=\"$weekdayheadercontentcolor\">" if defined $weekdayheadercontentcolor;
-         $html .= "$_";
-         $html .= "</font>" if defined $weekdayheadercontentcolor;
-         $html .= "</$celltype>\n";
+
+         $weekday_html  .= "<$celltype"
+                        . ( defined $weekendheadercolor 
+                            ? qq| bgcolor="$weekdayheadercolor"| 
+                            : '' )
+                        . ( defined $weekendcellclass 
+                            ? qq| class="$weekdaycellclass"| 
+                            : '' ) 
+                        . ">"
+                        . ( defined $weekdayheadercontentcolor 
+                            ? qq|<font color="$weekdayheadercontentcolor">| 
+                            : '' ) 
+                        . $_
+                        . ( defined $weekdayheadercontentcolor 
+                            ? qq|</font>|
+                            : '' )
+                        . "</$celltype>\n";
       }
-      $html .= "<$celltype";
-      $html .= " bgcolor=\"$weekendheadercolor\"" if defined $weekendheadercolor;
-      $html .= " class=\"$weekendcellclass\"" if defined $weekendcellclass;
-      $html .= ">";
-      $html .= "<font color=\"$weekendheadercontentcolor\">" if defined $weekendheadercontentcolor;
-      $html .= $self->saturday();
-      $html .= "</font>" if defined $weekendheadercontentcolor;
-      $html .= "</$celltype>\n";
+
+      $html .= "<tr>\n";
+      if ($self->weekstartsonmonday()) {
+        $html .= $weekday_html
+              .  $saturday_html
+              .  $sunday_html;
+      }
+      else {
+        $html .= $sunday_html
+              .  $weekday_html
+              .  $saturday_html;
+      }
       $html .= "</tr>\n";
+   }
+
+   my $_saturday_index = 6;
+   my $_sunday_index   = 0;
+   if ($self->weekstartsonmonday()) {
+       $_saturday_index = 5;
+       $_sunday_index   = 6;
    }
    # now do each day, the actual date-content-containing cells
    foreach $WEEK (0 .. ($weeks-1)) {
       $html .= "<TR>\n";
-      foreach $DAY (0 .. 6) {
+
+      
+      foreach $DAY ( 0 .. 6 ) {
          my($thiscontent,$thisday,$thisbgcolor,$thisbordercolor,$thiscontentcolor,$thiscellclass);
          $thisday = $days[((7*$WEEK)+$DAY)];
 
@@ -211,7 +269,7 @@ sub as_HTML {
                                                 $thiscontentcolor = $self->datecontentcolor($thisday) || $todaycontentcolor;
                                                 $thiscellclass = $self->datecellclass($thisday) || $todaycellclass;
                                               }
-         elsif (($DAY == 0) || ($DAY == 6))   { $thisbgcolor = $self->datecolor($thisday) || $weekendcolor;
+         elsif (($DAY == $_sunday_index) || ($DAY == $_saturday_index))   { $thisbgcolor = $self->datecolor($thisday) || $weekendcolor;
                                                 $thisbordercolor = $self->datebordercolor($thisday) || $weekendbordercolor;
                                                 $thiscontentcolor = $self->datecontentcolor($thisday) || $weekendcontentcolor;
                                                 $thiscellclass = $self->datecellclass($thisday) || $weekendcellclass;
@@ -255,6 +313,7 @@ sub as_HTML {
 
    return $html;
 }
+
 
 
 sub sunday {
@@ -658,6 +717,15 @@ sub headerclass {
     return $self->{'headerclass'};
 }
 
+sub weekstartsonmonday {
+    my $self = shift;
+    my $newvalue = shift;
+    if (defined($newvalue)) { $self->{'weekstartsonmonday'} = $newvalue; }
+    return $self->{'weekstartsonmonday'} ? 1 : 0;
+}
+
+
+
 ### the following methods are internal-use-only methods
 
 # _date_string_to_numeric() takes a date string (e.g. 5, 'wednesdays', or '3friday')
@@ -668,14 +736,15 @@ sub _date_string_to_numeric {
    my $self = shift;
    my $date = shift || return ();
 
+   my($which,$weekday);
    if ($date =~ m/^\d\.*\d*$/) { # first and easiest, simple numerics
       return int($date);
    }
-   elsif (my($which,$weekday) = ($date =~ m/^(\d)([a-zA-Z]+)$/)) {
+   elsif (($which,$weekday) = ($date =~ m/^(\d)([a-zA-Z]+)$/)) {
       my($y,$m,$d) = Date::Calc::Nth_Weekday_of_Month_Year($self->year(),$self->month(),Date::Calc::Decode_Day_of_Week($weekday),$which);
       return $d;
    }
-   elsif (my($weekday) = ($date =~ m/^(\w+)s$/i)) {
+   elsif (($weekday) = ($date =~ m/^(\w+)s$/i)) {
       $weekday = Date::Calc::Decode_Day_of_Week($weekday); # now it's the numeric weekday
       my @dates;
       foreach my $which (1..5) {
@@ -812,6 +881,18 @@ This method returns a string containing the HTML table for the month.
 
 It's okay to continue modifying the calendar after calling as_HTML(). My guess is that you'd want to call as_HTML() again to print the further-modified calendar, but that's your business...
 
+
+
+=head1 weekstartsonmonday([1|0])
+
+By default, calendars are displayed with Sunday as the first day of the week (American style). Most of the world prefers for calendars to start the week on Monday. This method selects which type is used: 1 specifies that the week starts on Monday, 0 specifies that the week starts on Sunday (the default). If no value is given at all, the current value (1 or 0) is returned.
+
+   # Example:
+   $cal->weekstartsonmonday(1); # switch over to weeks starting on Monday
+   $cal->weekstartsonmonday(0); # switch back to the default, where weeks start on Sunday
+
+   # Example:
+   print "The week starts on " . ($cal->weekstartsonmonday() ? 'Sunday' : 'Monday') . "\n";
 
 
 =head1 setdatehref(DATE,URL_STRING)
@@ -1112,6 +1193,8 @@ Ver 1.20 was a mistake on my part and was immediately superseded by 1.21.
 
 Changes in 1.21: Fixed the internals of setcontent() et al (see the method's doc for details). Made getdatehref(), setdatehref(), and datecolor() et al, able to handle weekdays in addition to numeric dates.
 
+Changes in 1.22: Added the much-desired weekstartsonmonday() method. Now weeks can start on Monday and end with the weekend, instead of the American style of starting on Sunday.
+
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
@@ -1145,4 +1228,6 @@ Alberto Simões <albie@alfarrabio.di.uminho.pt> provided the tableclass() functio
 Blair Zajac <blair@orcaware.com> provided the fixes for 1.19
 
 Thanks to Kurt <kurt@otown.com> for the bug report that made all the new stuff in 1.21 possible.
+
+Many thanks to Stefano Rodighiero <larsen@libero.it> for the code that made weekstartsonmonday() possible. This was a much-requested feature that will make many people happy!
 

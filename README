@@ -15,45 +15,53 @@ SYNOPSIS
        print $cal->as_HTML;
 
 DESCRIPTION
-    HTML::CalendarMonthSimple is a Perl module for generating, manipulating, and printing a HTML calendar grid for a specified
-    month. It is intended as a faster and easier-to-use alternative to HTML::CalendarMonth.
+    HTML::CalendarMonthSimple is a Perl module for generating, manipulating,
+    and printing a HTML calendar grid for a specified month. It is intended
+    as a faster and easier-to-use alternative to HTML::CalendarMonth.
 
-    This module requires the Date::Calc module, which is available from CPAN if you don't already have it.
+    This module requires the Date::Calc module, which is available from CPAN
+    if you don't already have it.
 
 INTERFACE METHODS
 new(ARGUMENTS)
-    Naturally, new() returns a newly constructed calendar object. Recognized arguments are 'year' and 'month', to specify which
-    month's calendar will be used. If either is omitted, the current value is used. An important note is that the month and the
-    year are NOT the standard C or Perl -- use a month in the range 1-12 and a real year, e.g. 2001.
+    Naturally, new() returns a newly constructed calendar object. Recognized
+    arguments are 'year' and 'month', to specify which month's calendar will
+    be used. If either is omitted, the current value is used. An important
+    note is that the month and the year are NOT the standard C or Perl --
+    use a month in the range 1-12 and a real year, e.g. 2001.
 
        # Examples:
        # Create a calendar for this month.
        $cal = new HTML::CalendarMonthSimple();
        # One for a specific month/year
-       $cal = new HTML::CalendarMonthSimple('month'=>2,'year=>2000);
+       $cal = new HTML::CalendarMonthSimple('month'=>2,'year'=>2000);
        # One for "the current month" in 1997
        $cal = new HTML::CalendarMonthSimple('year'=>1997);
 
 year()
 month()
 monthname()
-    These methods simply return the year/month of the calendar. monthname() returns the text name of the month, e.g. "December".
+    These methods simply return the year/month of the calendar. monthname()
+    returns the text name of the month, e.g. "December".
 
 setcontent(DATE,STRING)
 addcontent(DATE,STRING)
 getcontent(DATE)
-    These methods are used to control the content of date cells within the calendar grid. The DATE argument may be a numeric
-    date or it may be a string describing a certain occurrence of a weekday, e.g. "3MONDAY" to represent "the third Monday of
-    the month being worked with", or it may be the plural of a weekday name, e.g. "wednesdays" to represent all occurrences of
-    the given weekday. The weekdays are case-insensitive.
+    These methods are used to control the content of date cells within the
+    calendar grid. The DATE argument may be a numeric date or it may be a
+    string describing a certain occurrence of a weekday, e.g. "3MONDAY" to
+    represent "the third Monday of the month being worked with", or it may
+    be the plural of a weekday name, e.g. "wednesdays" to represent all
+    occurrences of the given weekday. The weekdays are case-insensitive.
+
+    Since plural weekdays (e.g. 'wednesdays') is not a single date,
+    getcontent() will return the content only for the first occurrence of
+    that day within a month.
 
        # Examples:
        # The cell for the 15th of the month will now say something.
        $cal->setcontent(15,"An Important Event!");
        # Later down the program, we want the content to be boldfaced.
-       $foo = "<b>" . $cal->getcontent(15) . "</b>";
-       $cal->setcontent(15,$foo);
-       # Or we could get extra spiffy:
        $cal->setcontent(15,"<b>" . $cal->getcontent(15) . "</b>");
 
        # addcontent() does not clobber existing content.
@@ -70,38 +78,39 @@ getcontent(DATE)
 
        # The second Sunday of May is some holiday or another...
        $cal->addcontent('2sunday','Some Special Day') if ($cal->month() == 5);
-       # So is the third wednesday of this month
-       $cal->setcontent('3WedNEsDaY','Third Wednesday!');
-       # What's scheduled for the second Friday?
-       $cal->getcontent('2FRIDAY');
 
-       # Every Wednesday and Friday of this month...
+       # Every Wednesday is special...
        $cal->addcontent('wednesdays','Every Wednesday!');
-       $cal->getcontent('Fridays');
 
-    Note: The storage for the three date types is in three separate buckets, e.g. even if the 9th of a month is the second
-    Wednesday of that month, if you setcontent() for the 9th of the month, then you addcontent() for the '2wednesday' of that
-    month, then getcontent(9) and getcontent('2wednesday') will each return their own content, not the combined contents! If you
-    want to use a date or a Nweekday to fetch all the content for that date, use getallcontent() instead of getcontent().
+       # either of these will return the content for the 1st Friday of the month
+       $cal->getcontent('1friday');
+       $cal->getcontent('Fridays'); # you really should use '1friday' for the first Friday
 
-getallcontent(DATE)
-    This is similar to getcontent() except that it is smart enough to combine all the content for a given date with the content
-    for that weekday. This addresses the shortcoming discussed in the getcontent()'s description. The DATE must be either a
-    numeric date (e.g. 9) or a string describing a certain occurrence of a weekday (e.g. '2wednesday). It is not acceptable to
-    use a plural weekday name (e.g. 'wednesdays').
+    Note: A change in 1.21 is that all content is now stored in a single set
+    of date-indexed buckets. Previously, the content for weekdays, plural
+    weekdays, and numeric dates were stored separately and could be fetched
+    and set independently. This led to buggy behavior, so now a single
+    storage set is used.
 
-       # example:
-       # getcontent() fetches individual buckets of content
-       # assume that the 9th is the second wednesday of the month...
-       $cal->addcontent(9,"the ninth\n");
-       $cal->addcontent('2wednesday',"second wednesday\n");
-       $cal->addcontent('wednesdays',"every wednesday\n");
-       print $cal->getcontent(9); # only prints the '9' bucket, not the others!
-       #
-       # on the other hand, getallcontent() is smart enough to combine the three content buckets...
-       # both of these will print the same thing: "the ninth\nsecond wednesday\nevery wednesday\n"
-       print $cal->getallcontent(9);
-       print $cal->getcontent('2wednesday');
+       # Example:
+       # if the 9th of the month is the second Wednesday...
+       $cal->setcontent(9,'ninth');
+       $cal->addcontent('2wednesday','second wednesday');
+       $cal->addcontent('wednesdays','every wednesday');
+       print $cal->getcontent(9);
+
+    In version 1.20 and previous, this would print 'ninth' but in 1.21 and
+    later, this will print all three items (since the 9th is not only the
+    9th but also a Wednesday and the second Wednesday). This could have
+    implications if you use setcontent() on a set of days, since other
+    content may be overwritten:
+
+       # Example:
+       # the second setcontent() effectively overwrites the first one
+       $cal->setcontent(9,'ninth');
+       $cal->setcontent('2wednesday','second wednesday');
+       $cal->setcontent('wednesdays','every wednesday');
+       print $cal->getcontent(9); # returns 'every wednesday' because that was the last assignment!
 
 as_HTML()
     This method returns a string containing the HTML table for the month.
@@ -109,85 +118,126 @@ as_HTML()
        # Example:
        print $cal->as_HTML();
 
-    It's okay to continue modifying the calendar after calling as_HTML(). My guess is that you'd want to call as_HTML() again to
-    print the further-modified calendar, but that's your business...
+    It's okay to continue modifying the calendar after calling as_HTML(). My
+    guess is that you'd want to call as_HTML() again to print the
+    further-modified calendar, but that's your business...
+
+weekstartsonmonday([1|0])
+    By default, calendars are displayed with Sunday as the first day of the
+    week (American style). Most of the world prefers for calendars to start
+    the week on Monday. This method selects which type is used: 1 specifies
+    that the week starts on Monday, 0 specifies that the week starts on
+    Sunday (the default). If no value is given at all, the current value (1
+    or 0) is returned.
+
+       # Example:
+       $cal->weekstartsonmonday(1); # switch over to weeks starting on Monday
+       $cal->weekstartsonmonday(0); # switch back to the default, where weeks start on Sunday
+
+       # Example:
+       print "The week starts on " . ($cal->weekstartsonmonday() ? 'Sunday' : 'Monday') . "\n";
 
 setdatehref(DATE,URL_STRING)
 getdatehref(DATE)
-    These methods are used to control the content of date cells within the calendar grid.
+    These allow the date-number in a calendar cell to become a hyperlink to
+    the specified URL. The DATE may be either a numeric date or any of the
+    weekday formats described in setcontent(), et al. If plural weekdays
+    (e.g. 'wednesdays') are used with getdatehref() the URL of the first
+    occurrence of that weekday in the month will be returned (since
+    'wednesdays' is not a single date).
 
        # Example:
-       # The date number in the cell for the 15th of the month will 
-       # be a link to the sourceforge website
+       # The date number in the cell for the 15th of the month will be a link
+       # then we change our mind and delete the link by assigning a null string
        $cal->setdatehref(15,"http://sourceforge.net/");
+       $cal->setdatehref(15,'');
 
        # Example:
-       # You want to add to an URL
-       $cal->setdatehref(15, $getdatehref(15)."projects/perl/");
+       # the second Wednesday of the month goes to some website
+       $cal->setdatehref('2wednesday','http://www.second-wednesday.com/');
+
+       # Example:
+       # every Wednesday goes to a website
+       # note that this will effectively undo the '2wednesday' assignment we just did!
+       # if we wanted the second Wednesday to go to that special URL, we should've done that one after this!
+       $cal->setdatehref('wednesdays','http://every-wednesday.net/');
 
 contentfontsize([STRING])
-    contentfontsize() sets the font size for the contents of the cell, overriding the browser's default. Can be expressed as an
-    absolute (1 .. 6) or relative (-3 .. +3) size.
+    contentfontsize() sets the font size for the contents of the cell,
+    overriding the browser's default. Can be expressed as an absolute (1 ..
+    6) or relative (-3 .. +3) size.
 
 border([INTEGER])
-    This specifies the value of the border attribute to the <TABLE> declaration for the calendar. As such, this controls the
-    thickness of the border around the calendar table. The default value is 5.
+    This specifies the value of the border attribute to the <TABLE>
+    declaration for the calendar. As such, this controls the thickness of
+    the border around the calendar table. The default value is 5.
 
-    If a value is not specified, the current value is returned. If a value is specified, the border value is changed and the new
-    value is returned.
+    If a value is not specified, the current value is returned. If a value
+    is specified, the border value is changed and the new value is returned.
 
 width([INTEGER][%])
-    This sets the value of the width attribute to the <TABLE> declaration for the calendar. As such, this controls the
-    horizintal width of the calendar.
+    This sets the value of the width attribute to the <TABLE> declaration
+    for the calendar. As such, this controls the horizintal width of the
+    calendar.
 
-    The width value can be either an integer (e.g. 600) or a percentage string (e.g. "80%"). Most web browsers take an integer
-    to be the table's width in pixels and a percentage to be the table width relative to the screen's width. The default width
-    is "100%".
+    The width value can be either an integer (e.g. 600) or a percentage
+    string (e.g. "80%"). Most web browsers take an integer to be the table's
+    width in pixels and a percentage to be the table width relative to the
+    screen's width. The default width is "100%".
 
-    If a value is not specified, the current value is returned. If a value is specified, the border value is changed and the new
-    value is returned.
+    If a value is not specified, the current value is returned. If a value
+    is specified, the border value is changed and the new value is returned.
 
        # Examples:
        $cal->width(600);    # absolute pixel width
        $cal->width("100%"); # percentage of screen size
 
 showdatenumbers([1 or 0])
-    If showdatenumbers() is set to 1, then the as_HTML() method will put date labels in each cell (e.g. a 1 on the 1st, a 2 on
-    the 2nd, etc.) If set to 0, then the date labels will not be printed. The default is 1.
+    If showdatenumbers() is set to 1, then the as_HTML() method will put
+    date labels in each cell (e.g. a 1 on the 1st, a 2 on the 2nd, etc.) If
+    set to 0, then the date labels will not be printed. The default is 1.
 
     If no value is specified, the current value is returned.
 
-    The date numbers are shown in boldface, normal size font. If you want to change this, consider setting showdatenumbers() to
-    0 and using setcontent()/addcontent() instead.
+    The date numbers are shown in boldface, normal size font. If you want to
+    change this, consider setting showdatenumbers() to 0 and using
+    setcontent()/addcontent() instead.
 
 showweekdayheaders([1 or 0])
 weekdayheadersbig([1 or 0])
-    If showweekdayheaders() is set to 1 (the default) then calendars rendered via as_HTML() will display the names of the days
-    of the week. If set to 0, the days' names will not be displayed.
+    If showweekdayheaders() is set to 1 (the default) then calendars
+    rendered via as_HTML() will display the names of the days of the week.
+    If set to 0, the days' names will not be displayed.
 
-    If weekdayheadersbig() is set to 1 (the default) then the weekday headers will be in <th> cells. The effect in most web
-    browsers is that they will be boldfaced and centered. If set to 0, the weekday headers will be in <td> cells and in normal
-    text.
+    If weekdayheadersbig() is set to 1 (the default) then the weekday
+    headers will be in <th> cells. The effect in most web browsers is that
+    they will be boldfaced and centered. If set to 0, the weekday headers
+    will be in <td> cells and in normal text.
 
-    For both functions, if no value is specified, the current value is returned.
+    For both functions, if no value is specified, the current value is
+    returned.
 
 cellalignment([STRING])
 vcellalignment([STRING])
-    cellalignment() sets the value of the align attribute to the <TD> tag for each day's cell. This controls how text will be
-    horizontally centered/aligned within the cells. vcellalignment() does the same for vertical alignment. By default, content
-    is aligned horizontally "left" and vertically "top"
+    cellalignment() sets the value of the align attribute to the <TD> tag
+    for each day's cell. This controls how text will be horizontally
+    centered/aligned within the cells. vcellalignment() does the same for
+    vertical alignment. By default, content is aligned horizontally "left"
+    and vertically "top"
 
-    Any value can be used, if you think the web browser will find it interesting. Some useful alignments are: left, right,
-    center, top, and bottom.
+    Any value can be used, if you think the web browser will find it
+    interesting. Some useful alignments are: left, right, center, top, and
+    bottom.
 
 header([STRING])
-    By default, the current month and year are displayed at the top of the calendar grid. This is called the "header".
+    By default, the current month and year are displayed at the top of the
+    calendar grid. This is called the "header".
 
-    The header() method allows you to set the header to whatever you like. If no new header is specified, the current header is
-    returned.
+    The header() method allows you to set the header to whatever you like.
+    If no new header is specified, the current header is returned.
 
-    If the header is set to an empty string, then no header will be printed at all. (No, you won't be stuck with a big empty
-    cell!)
+    If the header is set to an empty string, then no header will be printed
+    at all. (No, you won't be stuck with a big empty cell!)
 
        # Example:
        # Set the month/year header to something snazzy.
@@ -212,27 +262,36 @@ weekdayheadercolor([STRING])
 weekdayheadercontentcolor([STRING])
 weekendheadercolor([STRING])
 weekendheadercontentcolor([STRING])
-    These define the colors of the cells. If a string (which should be either a HTML color-code like '#000000' or a color-word
-    like 'yellow') is supplied as an argument, then the color is set to that specified. Otherwise, the current value is
-    returned. To un-set a value, try assigning the null string as a value.
+    These define the colors of the cells. If a string (which should be
+    either a HTML color-code like '#000000' or a color-word like 'yellow')
+    is supplied as an argument, then the color is set to that specified.
+    Otherwise, the current value is returned. To un-set a value, try
+    assigning the null string as a value.
 
-    The bgcolor defines the color of all cells. The weekdaycolor overrides the bgcolor for weekdays (Monday through Friday), the
-    weekendcolor overrides the bgcolor for weekend days (Saturday and Sunday), and the todaycolor overrides the bgcolor for
-    today's date. (Which may not mean a lot if you're looking at a calendar other than the current month.)
+    The bgcolor defines the color of all cells. The weekdaycolor overrides
+    the bgcolor for weekdays (Monday through Friday), the weekendcolor
+    overrides the bgcolor for weekend days (Saturday and Sunday), and the
+    todaycolor overrides the bgcolor for today's date. (Which may not mean a
+    lot if you're looking at a calendar other than the current month.)
 
-    The weekdayheadercolor overrides the bgcolor for the weekday headers that appear at the top of the calendar if
-    showweekdayheaders() is true, and weekendheadercolor does the same thing for the weekend headers. The headercolor overrides
-    the bgcolor for the month/year header at the top of the calendar. The headercontentcolor(), weekdayheadercontentcolor(), and
-    weekendheadercontentcolor() methods affect the color of the corresponding headers' contents and default to the
-    contentcolor().
+    The weekdayheadercolor overrides the bgcolor for the weekday headers
+    that appear at the top of the calendar if showweekdayheaders() is true,
+    and weekendheadercolor does the same thing for the weekend headers. The
+    headercolor overrides the bgcolor for the month/year header at the top
+    of the calendar. The headercontentcolor(), weekdayheadercontentcolor(),
+    and weekendheadercontentcolor() methods affect the color of the
+    corresponding headers' contents and default to the contentcolor().
 
-    The colors of the cell borders may be set: bordercolor determines the color of the calendar grid's outside border, and is
-    the default color of the inner border for individual cells. The inner bordercolor may be overridden for the various types of
-    cells via weekdaybordercolor, weekendbordercolor, and todaybordercolor.
+    The colors of the cell borders may be set: bordercolor determines the
+    color of the calendar grid's outside border, and is the default color of
+    the inner border for individual cells. The inner bordercolor may be
+    overridden for the various types of cells via weekdaybordercolor,
+    weekendbordercolor, and todaybordercolor.
 
-    Finally, the color of the cells' contents may be set with contentcolor, weekdaycontentcolor, weekendcontentcolor, and
-    todaycontentcolor. The contentcolor is the default color of cell content, and the other methods override this for the
-    appropriate days' cells.
+    Finally, the color of the cells' contents may be set with contentcolor,
+    weekdaycontentcolor, weekendcontentcolor, and todaycontentcolor. The
+    contentcolor is the default color of cell content, and the other methods
+    override this for the appropriate days' cells.
 
        # Example:
        $cal->bgcolor('white');                  # Set the default cell bgcolor
@@ -253,29 +312,46 @@ weekendheadercontentcolor([STRING])
 datecolor(DATE,[STRING])
 datecontentcolor(DATE,[STRING])
 datebordercolor(DATE,[STRING])
-    These methods set the cell color and the content color for the specified date, and will return the current value if STRING
-    is not specified. These color settings will override any of the settings mentioned above, even todaycolor() and
-    todaycontentcolor().
+    These methods set the cell color and the content color for the specified
+    date, and will return the current value if STRING is not specified.
+    These color settings will override any of the settings mentioned above,
+    even todaycolor() and todaycontentcolor().
 
-    The date must be numeric; it cannot be a string such as "2wednesday"
+    The date may be a numeric date or a weekday string as described in
+    setcontent() et al. Note that if a plural weekday is used (e.g.
+    'sundays') then, since it's not a single date, the value for the first
+    occurrence of that weekday will be returned (e.g. the first Sunday's
+    color).
 
-      # Example: a red-letter day!
-      $cal->datecolor(3,'pink');
-      $cal->datecontentcolor(3,'red');
+       # Example: a red-letter day!
+       $cal->datecolor(3,'pink');
+       $cal->datecontentcolor(3,'red');
+
+       # Example:
+       # Every Tuesday is a Soylent Green day...
+       # Note that if the 3rd was a Tuesday, this later assignment would override the previous one.
+       # see the docs for setcontent() et all for more information.
+       $cal->datecolor('tuesdays','green');
+       $cal->datecontentcolor('tuesdays','yellow');
 
 nowrap([1 or 0])
-    If set to 1, then calendar cells will have the NOWRAP attribute set, preventing their content from wrapping. If set to 0
-    (the default) then NOWRAP is not used and very long content may cause cells to become stretched out.
+    If set to 1, then calendar cells will have the NOWRAP attribute set,
+    preventing their content from wrapping. If set to 0 (the default) then
+    NOWRAP is not used and very long content may cause cells to become
+    stretched out.
 
 sharpborders([1 or 0])
-    If set to 1, this gives very crisp edges between the table cells. If set to 0 (the default) standard HTML cells are used. If
-    neither value is specified, the current value is returned.
+    If set to 1, this gives very crisp edges between the table cells. If set
+    to 0 (the default) standard HTML cells are used. If neither value is
+    specified, the current value is returned.
 
-    FYI: To accomplish the crisp border, the entire calendar table is wrapped inside a table cell.
+    FYI: To accomplish the crisp border, the entire calendar table is
+    wrapped inside a table cell.
 
 cellheight([NUMBER])
-    This specifies the height in pixels of each cell in the calendar. By default, no height is defined and the web browser
-    usually chooses a reasonable default.
+    This specifies the height in pixels of each cell in the calendar. By
+    default, no height is defined and the web browser usually chooses a
+    reasonable default.
 
     If no value is given, the current value is returned.
 
@@ -288,26 +364,31 @@ weekendcellclass([STRING])
 todaycellclass([STRING])
 datecellclass(DATE,[STRING])
 headerclass([STRING])
-    These specify which CSS class will be attributed to the calendar's table and the calendar's cells. By default, no classes
-    are specified or used.
+    These specify which CSS class will be attributed to the calendar's table
+    and the calendar's cells. By default, no classes are specified or used.
 
     tableclass() sets the CSS class for the calendar table.
 
-    cellclass() is used for all calendar cells. weekdaycellclass(), weekendcellclass(), and todaycellclass() override the
-    cellclass() for the corresponding types of cells. headerclass() is used for the calendar's header.
+    cellclass() is used for all calendar cells. weekdaycellclass(),
+    weekendcellclass(), and todaycellclass() override the cellclass() for
+    the corresponding types of cells. headerclass() is used for the
+    calendar's header.
 
-    datecellclass() sets the CSS class for the cell for the specified date. This setting will override any of the other cell
-    class settings, even todaycellclass() This date must be numeric; it cannot be a string such as "2wednesday"
+    datecellclass() sets the CSS class for the cell for the specified date.
+    This setting will override any of the other cell class settings, even
+    todaycellclass() This date must be numeric; it cannot be a string such
+    as "2wednesday"
 
     If no value is given, the current value is returned.
 
-    To un-specify a class, try specifying an empty string, e.g. cellclass('')
+    To un-specify a class, try specifying an empty string, e.g.
+    cellclass('')
 
 sunday([STRING])
 saturday([STRING])
 weekdays([MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY])
-    These functions allow the days of the week to be "renamed", which is useful for displaying the weekday headers in another
-    language.
+    These functions allow the days of the week to be "renamed", which is
+    useful for displaying the weekday headers in another language.
 
        # show the days of the week in Spanish
        $cal->saturday('Sábado');
@@ -319,95 +400,144 @@ weekdays([MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY])
        $cal->sunday('Sonntag');
        $cal->weekdays('Montag','Dienstag','Mittwoch','Donnerstag','Freitag');
 
-    If no value is specified (or, for weekdays() if exactly 5 arguments aren't given) then the current value is returned.
+    If no value is specified (or, for weekdays() if exactly 5 arguments
+    aren't given) then the current value is returned.
 
 BUGS, TODO, CHANGES
-    Changes in 1.01: Added VALIGN to cells, to make alignment work with browsers better. Added showweekdayheaders(). Corrected a
-    bug that results in the month not fitting on the grid (e.g. March 2003). Added getdatehref() and setdatehref(). Corrected a
-    bug that causes a blank week to be printed at the beginning of some months.
+    Changes in 1.01: Added VALIGN to cells, to make alignment work with
+    browsers better. Added showweekdayheaders(). Corrected a bug that
+    results in the month not fitting on the grid (e.g. March 2003). Added
+    getdatehref() and setdatehref(). Corrected a bug that causes a blank
+    week to be printed at the beginning of some months.
 
     Changes in 1.02: Added the color methods.
 
     Changes in 1.03: More color methods!
 
-    Changes in 1.04: Added the "which weekday" capability to addcontent(), setcontent(), and getcontent()
+    Changes in 1.04: Added the "which weekday" capability to addcontent(),
+    setcontent(), and getcontent()
 
-    Changes in 1.05: addcontent(), et al can now take strings such as '06' or decimals such as '3.14' and will handle them
-    correctly.
+    Changes in 1.05: addcontent(), et al can now take strings such as '06'
+    or decimals such as '3.14' and will handle them correctly.
 
-    Changes in 1.06: Changed the "which weekday" interface a bit; truncations such as "2Tue" no longer work, and must be spelled
-    out entirely ("2Tuesday"). Added "plural weekdays" support (e.g. "wednesdays" for "every wednesday").
+    Changes in 1.06: Changed the "which weekday" interface a bit;
+    truncations such as "2Tue" no longer work, and must be spelled out
+    entirely ("2Tuesday"). Added "plural weekdays" support (e.g.
+    "wednesdays" for "every wednesday").
 
-    Changes in 1.07: Fixed a typo that caused an entirely empty calendar to be displayed very small.
+    Changes in 1.07: Fixed a typo that caused an entirely empty calendar to
+    be displayed very small.
 
-    Changes in 1.08: Re-did the bugfixes described in 1.05, handling padded and non-integer dates.
+    Changes in 1.08: Re-did the bugfixes described in 1.05, handling padded
+    and non-integer dates.
 
-    Changes in 1.09: Fixed the "2Monday", et al support; a bug was found by Dale Wellman <dwellman@bpnetworks.com> where the
-    7th, 14th, 21st, and 28th days weren't properly computing which Nth weekday they were so "1Monday" wouldn't work if the
-    first Monday was the 7th of the month.
+    Changes in 1.09: Fixed the "2Monday", et al support; a bug was found by
+    Dale Wellman <dwellman@bpnetworks.com> where the 7th, 14th, 21st, and
+    28th days weren't properly computing which Nth weekday they were so
+    "1Monday" wouldn't work if the first Monday was the 7th of the month.
 
-    Changes in 1.10: Added the headercontentcolor(), weekendheadercontentcolor(), and weekdayheadercontentcolor() methods, and
-    made content headers use bgcolors, etc properly.
+    Changes in 1.10: Added the headercontentcolor(),
+    weekendheadercontentcolor(), and weekdayheadercontentcolor() methods,
+    and made content headers use bgcolors, etc properly.
 
-    Changes in 1.11: The module's VERSION is now properly specified, so "use" statements won't barf if they specify a minimum
-    version. Added the vcellalignment() method so vertical content alignment is independent of horizontal alignment.
+    Changes in 1.11: The module's VERSION is now properly specified, so
+    "use" statements won't barf if they specify a minimum version. Added the
+    vcellalignment() method so vertical content alignment is independent of
+    horizontal alignment.
 
-    Changes in 1.12: Fixed lots of warnings that were generated if -w was used, due to many values defaulting to undef/blank.
-    Added the sharpborders(), nowrap(), cellheight(), cellclass(), and weekdayheadersbig() methods. cellclass(), the beginning
-    of CSS support. Thanks, Bray!
+    Changes in 1.12: Fixed lots of warnings that were generated if -w was
+    used, due to many values defaulting to undef/blank. Added the
+    sharpborders(), nowrap(), cellheight(), cellclass(), and
+    weekdayheadersbig() methods. cellclass(), the beginning of CSS support.
+    Thanks, Bray!
 
-    Changes in 1.13: Added more CSS methods: headerclass(), weekdaycellclass(), weekndcellclass(), todaycellclass(). Added a
-    test to the module distribution at the urging of CPAN testers.
+    Changes in 1.13: Added more CSS methods: headerclass(),
+    weekdaycellclass(), weekndcellclass(), todaycellclass(). Added a test to
+    the module distribution at the urging of CPAN testers.
 
     Changes in 1.14: Added the contentfontsize() method.
 
-    Changes in 1.15: Added the datecolor(), datecontentcolor(), datebordercolor(), and datecellclass() methods, allowind
-    cosmetic attributes to be changed on a per-date basis.
+    Changes in 1.15: Added the datecolor(), datecontentcolor(),
+    datebordercolor(), and datecellclass() methods, allowind cosmetic
+    attributes to be changed on a per-date basis.
 
-    Changes in 1.16: Fixed a very stupid bug that made addcontent() and setcontent() not work. Sorry!
+    Changes in 1.16: Fixed a very stupid bug that made addcontent() and
+    setcontent() not work. Sorry!
 
-    Changes in 1.17: Corrected -w warnings about uninitialized values in as_HTML().
+    Changes in 1.17: Corrected -w warnings about uninitialized values in
+    as_HTML().
 
-    Changes in 1.18: Added methods: tableclass(), sunday(), saturday(), weekdays(). Now day names can be internationalized!
+    Changes in 1.18: Added methods: tableclass(), sunday(), saturday(),
+    weekdays(). Now day names can be internationalized!
 
-    Changes in 1.19: Fixed as_HTML() such that blank/0 values can be used for various values, e.g. border size, colors, etc.
-    Previously, values had to be non-zero or they were assumed to be undefined.
+    Changes in 1.19: Fixed as_HTML() such that blank/0 values can be used
+    for various values, e.g. border size, colors, etc. Previously, values
+    had to be non-zero or they were assumed to be undefined.
 
-    Changes in 1.20: Added the getallcontent() method to address the shortcoming of getcontent() This is a new and convenient
-    way to fetch all the content for a date without rendering it via as_HTML() Thanks to kurt <kurt@otown.com> for the bug
-    report.
+    Ver 1.20 was a mistake on my part and was immediately superseded by
+    1.21.
+
+    Changes in 1.21: Fixed the internals of setcontent() et al (see the
+    method's doc for details). Made getdatehref(), setdatehref(), and
+    datecolor() et al, able to handle weekdays in addition to numeric dates.
+
+    Changes in 1.22: Added the much-desired weekstartsonmonday() method. Now
+    weeks can start on Monday and end with the weekend, instead of the
+    American style of starting on Sunday.
 
 AUTHORS, CREDITS, COPYRIGHTS
-    This Perl module is freeware. It may be copied, derived, used, and distributed without limitation.
+    This Perl module is freeware. It may be copied, derived, used, and
+    distributed without limitation.
 
-    HTML::CalendarMonth was written and is copyrighted by Matthew P. Sisk <sisk@mojotoad.com> and provided inspiration for the
-    module's interface and features. None of Matt Sisk's code appears herein.
+    HTML::CalendarMonth was written and is copyrighted by Matthew P. Sisk
+    <sisk@mojotoad.com> and provided inspiration for the module's interface
+    and features. None of Matt Sisk's code appears herein.
 
-    HTML::CalendarMonthSimple was written by Gregor Mosheh <stigmata@blackangel.net> Frankly, the major inspiration was the
-    difficulty and unnecessary complexity of HTML::CalendarMonth. (Laziness is a virtue.)
+    HTML::CalendarMonthSimple was written by Gregor Mosheh
+    <stigmata@blackangel.net> Frankly, the major inspiration was the
+    difficulty and unnecessary complexity of HTML::CalendarMonth. (Laziness
+    is a virtue.)
 
-    This would have been extremely difficult if not for Date::Calc. Many thanks to Steffen Beyer <sb@engelschall.com> for a very
-    fine set of date-related functions!
+    This would have been extremely difficult if not for Date::Calc. Many
+    thanks to Steffen Beyer <sb@engelschall.com> for a very fine set of
+    date-related functions!
 
-    Dave Fuller <dffuller@yahoo.com> added the getdatehref() and setdatehref() methods, and pointed out the bugs that were
-    corrected in 1.01.
+    Dave Fuller <dffuller@yahoo.com> added the getdatehref() and
+    setdatehref() methods, and pointed out the bugs that were corrected in
+    1.01.
 
-    Danny J. Sohier <danny@gel.ulaval.ca> provided many of the color functions.
+    Danny J. Sohier <danny@gel.ulaval.ca> provided many of the color
+    functions.
 
-    Bernie Ledwick <bl@man.fwltech.com> provided base code for the today*() functions, and for the handling of cell borders.
+    Bernie Ledwick <bl@man.fwltech.com> provided base code for the today*()
+    functions, and for the handling of cell borders.
 
-    Justin Ainsworth <jrainswo@olemiss.edu> provided the vcellalignment() concept and code.
+    Justin Ainsworth <jrainswo@olemiss.edu> provided the vcellalignment()
+    concept and code.
 
-    Jessee Porter <porterje@us.ibm.com> provided fixes for 1.12 to correct those warnings.
+    Jessee Porter <porterje@us.ibm.com> provided fixes for 1.12 to correct
+    those warnings.
 
-    Bray Jones <bjones@vialogix.com> supplied the sharpborders(), nowrap(), cellheight(), cellclass() methods.
+    Bray Jones <bjones@vialogix.com> supplied the sharpborders(), nowrap(),
+    cellheight(), cellclass() methods.
 
-    Bill Turner <b@brilliantcorners.org> supplied the headerclass() method and the rest of the methods added to 1.13
+    Bill Turner <b@brilliantcorners.org> supplied the headerclass() method
+    and the rest of the methods added to 1.13
 
-    Bill Rhodes <wrhodes@27.org> provided the contentfontsize() method for version 1.14
+    Bill Rhodes <wrhodes@27.org> provided the contentfontsize() method for
+    version 1.14
 
-    Alberto Simões <albie@alfarrabio.di.uminho.pt> provided the tableclass() function and the saturday(), sunday(), and
-    weekdays() functions for version 1.18. Thanks, Alberto, I've been wanting this since the beginning!
+    Alberto Simões <albie@alfarrabio.di.uminho.pt> provided the tableclass()
+    function and the saturday(), sunday(), and weekdays() functions for
+    version 1.18. Thanks, Alberto, I've been wanting this since the
+    beginning!
 
     Blair Zajac <blair@orcaware.com> provided the fixes for 1.19
+
+    Thanks to Kurt <kurt@otown.com> for the bug report that made all the new
+    stuff in 1.21 possible.
+
+    Many thanks to Stefano Rodighiero <larsen@libero.it> for the code that
+    made weekstartsonmonday() possible. This was a much-requested feature
+    that will make many people happy!
 
