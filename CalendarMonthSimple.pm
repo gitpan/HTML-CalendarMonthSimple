@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.18";
+$HTML::CalendarMonthSimple::VERSION = "1.19";
 use strict;
 use Date::Calc;
 
@@ -85,7 +85,7 @@ sub as_HTML {
    my $cellalignment = $self->cellalignment();
    my $vcellalignment = $self->vcellalignment();
    my $contentfontsize = $self->contentfontsize();
-   my $bgcolor = $self->bgcolor() || '';
+   my $bgcolor = $self->bgcolor();
    my $weekdaycolor = $self->weekdaycolor() || $self->bgcolor();
    my $weekendcolor = $self->weekendcolor() || $self->bgcolor();
    my $todaycolor = $self->todaycolor() || $self->bgcolor();
@@ -103,9 +103,9 @@ sub as_HTML {
    my $weekdayheadercontentcolor = $self->weekdayheadercontentcolor() || $self->contentcolor();
    my $weekendheadercontentcolor = $self->weekendheadercontentcolor() || $self->contentcolor();
    my $headercolor = $self->headercolor() || $self->bgcolor();
-   my $cellpadding = $self->cellpadding() || 0;
-   my $cellspacing = $self->cellspacing() || 0;
-   my $sharpborders = $self->sharpborders() || 0;
+   my $cellpadding = $self->cellpadding();
+   my $cellspacing = $self->cellspacing();
+   my $sharpborders = $self->sharpborders();
    my $cellheight = $self->cellheight();
    my $cellclass = $self->cellclass();
    my $tableclass = $self->tableclass();
@@ -113,42 +113,42 @@ sub as_HTML {
    my $weekendcellclass = $self->weekendcellclass() || $self->cellclass();
    my $todaycellclass = $self->todaycellclass() || $self->cellclass();
    my $headerclass = $self->headerclass() || $self->cellclass();
-   my $nowrap = $self->nowrap() || 0;
+   my $nowrap = $self->nowrap();
    # Get today's date, in case there's a todaycolor()
    my($todayyear,$todaymonth,$todaydate) = Date::Calc::Today();
 
    # the table declaration - sharpborders wraps the table inside a table cell
    if ($sharpborders) {
       $html .= "<table border=\"0\"";
-      $html .= " class=\"$tableclass\"" if $tableclass;
-      $html .= " width=\"$tablewidth\"" if $tablewidth;
+      $html .= " class=\"$tableclass\"" if defined $tableclass;
+      $html .= " width=\"$tablewidth\"" if defined $tablewidth;
       $html .= " cellpadding=\"0\" cellspacing=\"0\">\n";
       $html .= "<tr valign=\"top\" align=\"left\">\n";
       $html .= "<td align=\"left\" valign=\"top\"";
-      $html .= " bgcolor=\"$bordercolor\"" if $bordercolor;
+      $html .= " bgcolor=\"$bordercolor\"" if defined $bordercolor;
       $html .= ">";
       $html .= "<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"100%\">";
    }
    else {
       $html .= "<table";
-      $html .= " class=\"$tableclass\"" if $tableclass;
-      $html .= " border=\"$border\"" if $border;
-      $html .= " width=\"$tablewidth\"" if $tablewidth;
-      $html .= " bgcolor=\"$bgcolor\"" if $bgcolor;
-      $html .= " bordercolor=\"$bordercolor\"" if $bordercolor;
-      $html .= " cellpadding=\"$cellpadding\"" if $cellpadding;
-      $html .= " cellspacing=\"$cellspacing\""  if $cellspacing;
+      $html .= " class=\"$tableclass\"" if defined $tableclass;
+      $html .= " border=\"$border\"" if defined $border;
+      $html .= " width=\"$tablewidth\"" if defined $tablewidth;
+      $html .= " bgcolor=\"$bgcolor\"" if defined $bgcolor;
+      $html .= " bordercolor=\"$bordercolor\"" if defined $bordercolor;
+      $html .= " cellpadding=\"$cellpadding\"" if defined $cellpadding;
+      $html .= " cellspacing=\"$cellspacing\""  if defined $cellspacing;
       $html .= ">\n";
    }
    # the header
    if ($header) {
       $html .= "<tr><td colspan=7";
-      $html .= " bgcolor=\"$headercolor\"" if $headercolor;
-      $html .= " class=\"$headerclass\"" if $headerclass;
+      $html .= " bgcolor=\"$headercolor\"" if defined $headercolor;
+      $html .= " class=\"$headerclass\"" if defined $headerclass;
       $html .= ">";
-      $html .= "<font color=\"$headercontentcolor\">" if $headercontentcolor;
+      $html .= "<font color=\"$headercontentcolor\">" if defined $headercontentcolor;
       $html .= $header;
-      $html .= "</font>"  if $headercontentcolor;
+      $html .= "</font>"  if defined $headercontentcolor;
       $html .= "</td></tr>\n";
    }
    # the names of the days of the week
@@ -157,30 +157,30 @@ sub as_HTML {
       my @weekdays = $self->weekdays();
       $html .= "<tr>\n";
       $html .= "<$celltype";
-      $html .= " bgcolor=\"$weekendheadercolor\"" if $weekendheadercolor;
-      $html .= " class=\"$weekendcellclass\"" if $weekendcellclass;
+      $html .= " bgcolor=\"$weekendheadercolor\"" if defined $weekendheadercolor;
+      $html .= " class=\"$weekendcellclass\"" if defined $weekendcellclass;
       $html .= ">";
-      $html .= "<font color=\"$weekendheadercontentcolor\">" if $weekendheadercontentcolor;
+      $html .= "<font color=\"$weekendheadercontentcolor\">" if defined $weekendheadercontentcolor;
       $html .= $self->sunday();
-      $html .= "</font>" if $weekendheadercontentcolor;
+      $html .= "</font>" if defined $weekendheadercontentcolor;
       $html .= "</$celltype>\n";
       foreach (@weekdays) { # draw the weekday headers
          $html .= "<$celltype";
-         $html .= " bgcolor=\"$weekdayheadercolor\"" if $weekdayheadercolor;
-         $html .= " class=\"$weekdaycellclass\"" if $weekdaycellclass;
+         $html .= " bgcolor=\"$weekdayheadercolor\"" if defined $weekdayheadercolor;
+         $html .= " class=\"$weekdaycellclass\"" if defined $weekdaycellclass;
          $html .= ">";
-         $html .= "<font color=\"$weekdayheadercontentcolor\">" if $weekdayheadercontentcolor;
+         $html .= "<font color=\"$weekdayheadercontentcolor\">" if defined $weekdayheadercontentcolor;
          $html .= "$_";
-         $html .= "</font>" if $weekdayheadercontentcolor;
+         $html .= "</font>" if defined $weekdayheadercontentcolor;
          $html .= "</$celltype>\n";
       }
       $html .= "<$celltype";
-      $html .= " bgcolor=\"$weekendheadercolor\"" if $weekendheadercolor;
-      $html .= " class=\"$weekendcellclass\"" if $weekendcellclass;
+      $html .= " bgcolor=\"$weekendheadercolor\"" if defined $weekendheadercolor;
+      $html .= " class=\"$weekendcellclass\"" if defined $weekendcellclass;
       $html .= ">";
-      $html .= "<font color=\"$weekendheadercontentcolor\">" if $weekendheadercontentcolor;
+      $html .= "<font color=\"$weekendheadercontentcolor\">" if defined $weekendheadercontentcolor;
       $html .= $self->saturday();
-      $html .= "</font>" if $weekendheadercontentcolor;
+      $html .= "</font>" if defined $weekendheadercontentcolor;
       $html .= "</$celltype>\n";
       $html .= "</tr>\n";
    }
@@ -235,20 +235,23 @@ sub as_HTML {
          # Done with this cell - push it into the table
          $html .= "<td";
          $html .= " nowrap" if $nowrap;
-         $html .= " class=\"$thiscellclass\"" if $thiscellclass;
-         $html .= " height=\"$cellheight\"" if $cellheight;
-         $html .= " width=\"$cellwidth\"" if $cellwidth;
-         $html .= " valign=\"$vcellalignment\"" if $vcellalignment;
-         $html .= " align=\"$cellalignment\"" if $cellalignment;
-         $html .= " bgcolor=\"$thisbgcolor\"" if $thisbgcolor;
-         $html .= " bordercolor=\"$thisbordercolor\"" if $thisbordercolor;
+         $html .= " class=\"$thiscellclass\"" if defined $thiscellclass;
+         $html .= " height=\"$cellheight\"" if defined $cellheight;
+         $html .= " width=\"$cellwidth\"" if defined $cellwidth;
+         $html .= " valign=\"$vcellalignment\"" if defined $vcellalignment;
+         $html .= " align=\"$cellalignment\"" if defined $cellalignment;
+         $html .= " bgcolor=\"$thisbgcolor\"" if defined $thisbgcolor;
+         $html .= " bordercolor=\"$thisbordercolor\"" if defined $thisbordercolor;
          $html .= ">";
-         $html .= "<font" if ($thiscontentcolor || $contentfontsize);
-         $html .= " color=\"$thiscontentcolor\"" if $thiscontentcolor;
-         $html .= " size=\"$contentfontsize\""  if $contentfontsize;
-         $html .= ">" if ($thiscontentcolor || $contentfontsize);
+         $html .= "<font" if (defined $thiscontentcolor ||
+                              defined $contentfontsize);
+         $html .= " color=\"$thiscontentcolor\"" if defined $thiscontentcolor;
+         $html .= " size=\"$contentfontsize\""  if defined $contentfontsize;
+         $html .= ">" if (defined $thiscontentcolor ||
+                          defined $contentfontsize);
          $html .= $thiscontent;
-         $html .= "</font>" if ($thiscontentcolor || $contentfontsize);
+         $html .= "</font>" if (defined $thiscontentcolor ||
+                                defined $contentfontsize);
          $html .= "</td>\n";
       }
       $html .= "</tr>\n";
@@ -1026,6 +1029,8 @@ Changes in 1.17: Corrected B<-w> warnings about uninitialized values in as_HTML(
 
 Changes in 1.18: Added methods: tableclass(), sunday(), saturday(), weekdays(). Now day names can be internationalized!
 
+Changes in 1.19: Fixed as_HTML() such that blank/0 values can be used for various values, e.g. border size, colors, etc. Previously, values had to be non-zero or they were assumed to be undefined.
+
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
@@ -1055,4 +1060,6 @@ Bill Turner <b@brilliantcorners.org> supplied the headerclass() method and the r
 Bill Rhodes <wrhodes@27.org> provided the contentfontsize() method for version 1.14
 
 Alberto Simões <albie@alfarrabio.di.uminho.pt> provided the tableclass() function and the saturday(), sunday(), and weekdays() functions for version 1.18. Thanks, Alberto, I've been wanting this since the beginning!
+
+Blair Zajac <blair@orcaware.com> provided the fixes for 1.19
 
