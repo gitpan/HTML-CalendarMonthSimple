@@ -3,11 +3,9 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
+my $VERSION     = "1.01";
 use strict;
 use Date::Calc;
-
-# Version 0.25, release February 8, 2001
-my $VERSION     = "1.00";
 
 
 # Within the constructor is the only place where values are access directly.
@@ -26,6 +24,7 @@ sub new {
    $self->{'border'}             = 5;
    $self->{'width'}              = '100%';
    $self->{'showdatenumbers'}    = 1;
+   $self->{'showweekdayheaders'} = 1;
    $self->{'cellalignment'}      = 'left';
 
    # Set the default calendar header
@@ -47,16 +46,14 @@ sub new {
 sub as_HTML {
    my $self = shift;
    my $html = '';
-   my(@days,$WEEK,$DAY);
+   my(@days,$weeks,$WEEK,$DAY);
 
-   # To make the grid even 7x5, pad the start and end of the month with 0s
+   # To make the grid even, pad the start of the series with 0s
    @days = (1 .. Date::Calc::Days_in_Month($self->year(),$self->month() ) );
-   foreach (1 .. Date::Calc::Day_of_Week($self->year(),$self->month(),1) ) {
+   foreach (1 .. (Date::Calc::Day_of_Week($self->year(),$self->month(),1)%7) ) {
       unshift(@days,0);
    }
-   foreach (1 .. (35-scalar(@days))) {
-      push(@days,0);
-   }
+   $weeks = int((scalar(@days)+6)/7);
 
    # Define some scalars for generating the table
    my $border = $self->border();
@@ -68,8 +65,11 @@ sub as_HTML {
    # Now draw the grid
    $html .= "<TABLE BORDER=\"$border\" WIDTH=\"$tablewidth\">\n";
    $html .= "<tr><td colspan=7>$header</td></tr>\n" if $header;
-   $html .= "<tr>\n<th>Sunday</th>\n<th>Monday</th>\n<th>Tuesday</th>\n<th>Wednesday</th>\n<th>Thursday</th>\n<th>Friday</th>\n<th>Saturday</th>\n</tr>\n";
-   foreach $WEEK (0 .. 4) {
+   if ($self->showweekdayheaders) {
+      # Ultimately, this will display a hashref contents instead of a static week...
+      $html .= "<tr>\n<th>Sunday</th>\n<th>Monday</th>\n<th>Tuesday</th>\n<th>Wednesday</th>\n<th>Thursday</th>\n<th>Friday</th>\n<th>Saturday</th>\n</tr>\n";
+   }
+   foreach $WEEK (0 .. ($weeks-1)) {
       $html .= "<TR>\n";
       foreach $DAY (0 .. 6) {
          my($thiscontent,$thisday);
@@ -77,9 +77,16 @@ sub as_HTML {
          if (! $thisday) { # If it's a dummy cell, no content
             $thiscontent = '&nbsp;'; }
          else { # A real date cell with potential content
-            if ($self->showdatenumbers()) { $thiscontent = "<p><b>$thisday</b></p>\n"; }
+            if ($self->showdatenumbers()) { 
+              if ( $self->getdatehref( $thisday )) {
+                $thiscontent = "<p><b><a href=".$self->getdatehref($thisday);
+                $thiscontent .= ">$thisday</a></b></p>\n";
+              } else {
+                $thiscontent = "<p><b>$thisday</b></p>\n";
+              }
+            }
             $thiscontent .= $self->getcontent($thisday) || '&nbsp;'; }
-         $html .= "<TD WIDTH=\"$cellwidth\" ALIGN=\"$cellalignment\">$thiscontent</TD>\n";
+         $html .= "<TD WIDTH=\"$cellwidth\" VALIGN=\"$cellalignment\" ALIGN=\"$cellalignment\">$thiscontent</TD>\n";
       }
       $html .= "</TR>\n";
    }
@@ -88,7 +95,19 @@ sub as_HTML {
    return $html;
 }
 
+sub getdatehref {
+  my $self = shift;
+  my $date = shift || return();
+  return $self->{'href'}->{$date};
+}
 
+sub setdatehref {
+   my $self = shift;
+   my $date = shift || return();
+   my $datehref = shift || '';
+   $self->{'href'}->{$date} = $datehref;
+   return(1);
+}
 
 sub getcontent {
    my $self = shift;
@@ -137,6 +156,12 @@ sub showdatenumbers {
    my $newvalue = shift;
    if (defined($newvalue)) { $self->{'showdatenumbers'} = $newvalue; }
    return $self->{'showdatenumbers'};
+}
+sub showweekdayheaders {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'showweekdayheaders'} = $newvalue; }
+   return $self->{'showweekdayheaders'};
 }
 
 sub cellalignment {
@@ -190,6 +215,7 @@ HTML::CalendarMonthSimple - Perl Module for Generating HTML Calendars
    $cal->border(10);
    $cal->header('Text at the top of the Grid');
    $cal->setcontent(14,"Valentine's Day");
+   $cal->setdatehref(14, 'http://www.lovers.com/');
    $cal->addcontent(20,"Twentieth day of the month");
    $cal->addcontent(14,"<p>Don't forget to buy flowers.");
    print $cal->as_HTML;
@@ -246,6 +272,22 @@ These methods are used to control the content of date cells within the calendar 
    print $cal->getcontent(16); # Prints 2 sentences
 
 
+=head1 setdatehref(DATE,URL_STRING)
+
+=head1 getdatehref(DATE)
+
+These methods are used to control the content of date cells within the calendar grid.
+
+   # Example:
+   # The date number in the cell for the 15th of the month will 
+   # be a link to the sourceforge website
+   $cal->setdatehref(15,"http://sourceforge.net/");
+
+   # Example:
+   # You want to add to an URL
+   $cal->setdatehref(15, $getdatehref(15)."projects/perl/");
+
+
 =head1 as_HTML()
 
 This method returns a string containing the HTML table for the month.
@@ -294,6 +336,13 @@ If no value is specified, the current value is returned.
 The date numbers are shown in boldface, normal size font. If you want to change this, consider setting showdatenumbers() to 0 and using setcontent()/addcontent() instead.
 
 
+=head1 showweekdayheaders([1 or 0])
+
+If showweekdayheaders() is set to 1 (the default) then calendars rendered via as_HTML() will display the names of the days of the week. If set to 0, the days' names will not be displayed.
+
+If no value is specified, the current value is returned.
+
+
 =head1 cellalignment([STRING])
 
 This sets the value of the align attribute to the <TD> tag for each day's cell. This controls how text will be centered/aligned within the cells.
@@ -318,17 +367,15 @@ If the header is set to an empty string, then no header will be printed at all. 
 
 
 
-=head1 BUGS AND TODO
+=head1 BUGS, TODO, CHANGES
 
 It would be nice if the week didn't have to start on Sunday. It would also be cool if the weekday headers could be changed (Lunes, Martes, Miercoles,...)  or suppressed. It'd be nice if the month could be translated, as well. These features will probably make in into the next version some time in mid-February.
 
-No known bugs. Let me know if your mileage varies.
-
-Suggestions are always welcome.
+Changes in 1.01: Added VALIGN to cells, to make alignment work with browsers better. Added showweekdayheaders(). Corrected a bug that results in the month not fitting on the grid (e.g. March 2003).  Added getdatehref() and setdatehref(). Corrected a bug that causes a blank week to be printed at the beginning of some months.
 
 
 
-=head1 AUTHOR, CREDITS, COPYRIGHT
+=head1 AUTHORS, CREDITS, COPYRIGHTS
 
 HTML::CalendarMonth was written and is copyrighted by Matthew P. Sisk <sisk@mojotoad.com> and provided inspiration for the module's interface and features. Frankly, the major inspiration was the difficulty and unnecessary complexity of the interface. (Laziness is a virtue.)
 
@@ -336,5 +383,8 @@ HTML::CalendarMonthSimple was written by Gregor Mosheh <stigmata@blackangel.net>
 
 This would have been extremely difficult if not for Date::Calc. Many thanks to Steffen Beyer <sb@engelschall.com> for a very fine set of date-related functions!
 
+Dave Fuller (dffuller@yahoo.com) added the getdatehref() and setdatehref() methods.
+
 This Perl module is freeware. It may be copied, derived, used, and distributed without limitation.
+
 
