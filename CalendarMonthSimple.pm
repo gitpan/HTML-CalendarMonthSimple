@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-my $VERSION     = "1.07";
+my $VERSION     = "1.08";
 use strict;
 use Date::Calc;
 
@@ -281,7 +281,7 @@ sub setcontent {
 
 sub addcontent {
    my $self = shift;
-   my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d+\.]$/;
+   my $date = lc(shift) || return(); $date = int($date) if $date =~ m/^[\d+\.]+$/;
    my $newcontent = shift || return();
    return() unless defined($self->{'content'}->{$date});
    $self->{'content'}->{$date} .= $newcontent;
@@ -414,13 +414,17 @@ These methods are used to control the content of date cells within the calendar 
    # Or we could get extra spiffy:
    $cal->setcontent(15,"<b>" . $cal->getcontent(15) . "</b>");
 
-   # Example:
    # addcontent() does not clober existing content.
    # Also, if you setcontent() to '', you've deleted the content.
    $cal->setcontent(16,'');
    $cal->addcontent(16,"<p>Hello World</p>");
    $cal->addcontent(16,"<p>Hello Again</p>");
    print $cal->getcontent(16); # Prints 2 sentences
+
+   # Padded and decimal numbers may be used, as well:
+   $cal->setcontent(3.14159,'Third of the month');
+   $cal->addcontent('00003.0000','Still the third');
+   $cal->getcontent('3'); # Gets the 2 sentences
 
    # The second Sunday of May is some holiday or another...
    $cal->addcontent('2sunday','Some Special Day') if ($cal->month() == 5);
@@ -598,6 +602,8 @@ Changes in 1.05: addcontent(), et al can now take strings such as '06' or decima
 Changes in 1.06: Changed the "which weekday" interface a bit; truncations such as "2Tue" no longer work, and must be spelled out entirely ("2Tuesday"). Added "plural weekdays" support (e.g. "wednesdays" for "every wednesday").
 
 Changes in 1.07: Fixed a typo that caused an entirely empty calendar to be displayed very small.
+
+Changes in 1.08: Re-did the bugfixes described in 1.05, handling padded and non-integer dates.
 
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
