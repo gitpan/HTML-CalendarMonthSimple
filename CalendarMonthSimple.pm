@@ -3,7 +3,7 @@
 # Herein, the symbol $self is used to refer to the object that's being passed around.
 
 package HTML::CalendarMonthSimple;
-$HTML::CalendarMonthSimple::VERSION = "1.13";
+$HTML::CalendarMonthSimple::VERSION = "1.14";
 use strict;
 use Date::Calc;
 
@@ -70,6 +70,7 @@ sub as_HTML {
    my $header = $self->header();
    my $cellalignment = $self->cellalignment();
    my $vcellalignment = $self->vcellalignment();
+   my $contentfontsize = $self->contentfontsize();
    my $bgcolor = $self->bgcolor() || '';
    my $weekdaycolor = $self->weekdaycolor() || $self->bgcolor();
    my $weekendcolor = $self->weekendcolor() || $self->bgcolor();
@@ -221,9 +222,12 @@ sub as_HTML {
          $html .= " bgcolor=\"$thisbgcolor\"" if $thisbgcolor;
          $html .= " bordercolor=\"$thisbordercolor\"" if $thisbordercolor;
          $html .= ">";
-         $html .= "<font color=\"$thiscontentcolor\">" if $thiscontentcolor;
+         $html .= "<font" if ($thiscontentcolor || $contentfontsize);
+         $html .= " color=\"$thiscontentcolor\"" if $thiscontentcolor;
+         $html .= " size=\"$contentfontsize\""  if $contentfontsize;
+         $html .= ">" if ($thiscontentcolor || $contentfontsize);
          $html .= $thiscontent;
-         $html .= "</font>" if $thiscontentcolor;
+         $html .= "</font>" if ($thiscontentcolor || $contentfontsize);
          $html .= "</td>\n";
       }
       $html .= "</tr>\n";
@@ -459,6 +463,13 @@ sub vcellalignment {
    my $newvalue = shift;
    if (defined($newvalue)) { $self->{'vcellalignment'} = $newvalue; }
    return $self->{'vcellalignment'};
+}
+
+sub contentfontsize {
+   my $self = shift;
+   my $newvalue = shift;
+   if (defined($newvalue)) { $self->{'contentfontsize'} = $newvalue; }
+   return $self->{'contentfontsize'};
 }
 
 sub weekdayheadersbig {
@@ -720,7 +731,12 @@ For both functions, if no value is specified, the current value is returned.
 
 cellalignment() sets the value of the align attribute to the <TD> tag for each day's cell. This controls how text will be horizontally centered/aligned within the cells. vcellalignment() does the same for vertical alignment. By default, content is aligned horizontally "left" and vertically "top"
 
-Any value can be used, if you think the web browser will find it interesting. Some useful alignments are: left, right, center, top, and bottom,
+Any value can be used, if you think the web browser will find it interesting. Some useful alignments are: left, right, center, top, and bottom.
+
+
+=head1 contentfontsize([STRING])
+
+contentfontsize() sets the font size for the contents of the cell, overriding the browser's default. Can be expressed as an absolute (1 .. 6) or relative (-3 .. +3) size.
 
 
 =head1 header([STRING])
@@ -871,6 +887,8 @@ Changes in 1.12: Fixed lots of warnings that were generated if -w was used, due 
 
 Changes in 1.13: Added more CSS methods: headerclass(), weekdaycellclass(), weekndcellclass(), todaycellclass(). Added a test to the module distribution at the urging of CPAN testers.
 
+Changes in 1.14: Added the contentfontsize() method.
+
 
 =head1 AUTHORS, CREDITS, COPYRIGHTS
 
@@ -897,5 +915,7 @@ Todd <todd@marigoldtech.com> requested the weekdayheadersbig() method.
 Bray Jones <bjones@vialogix.com> supplied the sharpborders(), nowrap(), cellheight(), cellclass() methods.
 
 Bill Turner <b@brilliantcorners.org> supplied the headerclass() method and the rest of the methods added to 1.13
+
+Bill Rhodes <wrhodes@27.org> provided the contentfontsize() method for version 1.14
 
 
